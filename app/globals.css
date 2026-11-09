@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* AUH Gaming design tokens. See auh-gaming-design-system.md. Single yellow theme, no dark mode. */
+@theme {
+  --color-auh-yellow: #f9db00;
+  --color-auh-yellow-hover: #ffe733;
+  --color-auh-yellow-deep: #dbbb04;
+  --color-auh-ink: #151924;
+  --color-auh-ink-soft: #2a2f3d;
+  --color-auh-orange: #ff7a05;
+  --color-auh-paper: #fff7c2;
+  --color-auh-cream: #fff4b0;
+  --color-auh-cream-dim: #c9c2a0;
+  --color-auh-olive: #4a4320;
+  --color-auh-green: #7be07b;
+
+  /* No rounded corners anywhere; the notch replaces border radius. */
+  --radius-*: initial;
+
+  --animate-drop: drop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+
+  @keyframes drop {
+    from {
+      transform: translateY(-30px) scale(0.94);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+}
+
+@theme inline {
+  --font-display: var(--font-teko), "Bahnschrift", "Arial Narrow", sans-serif;
+  --font-body: var(--font-chakra), "Segoe UI", system-ui, sans-serif;
+}
+
+/* Signature shape: top corners clipped like the top of the logo shield. */
+@utility notch {
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
+}
+
+/* Bottom corners clipped. Use for a single highlighted panel only. */
+@utility notch-b {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 14px),
+    calc(100% - 14px) 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+@utility bg-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--color-auh-yellow-deep) 35%, transparent) 6px 7px
+  );
+}
+
+/* Focus ring for notched elements: clip-path hides normal outlines. */
+@utility focus-notch {
+  &:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 3px var(--color-auh-orange);
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 72px; /* height of sticky header */
+    /* Stop the elastic overscroll bounce (macOS/iOS) from dragging the sticky header past the top. */
+    overscroll-behavior-y: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
