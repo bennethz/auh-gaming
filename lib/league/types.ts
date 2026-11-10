@@ -16,9 +16,10 @@ export interface Team {
 
 /**
  * Result of a best-of-two group stage series, from the first team's point of view:
- * "2-0" is a win, "1-1" a draw and "0-2" a loss.
+ * "2-0" is a win, "1-1" a draw and "0-2" a loss. "DW" is a default win (the opponent
+ * forfeited or didn't show) and "DL" the matching default loss.
  */
-export type SeriesScore = "2-0" | "1-1" | "0-2";
+export type SeriesScore = "2-0" | "1-1" | "0-2" | "DW" | "DL";
 
 /** One played group stage series. */
 export interface GroupResult {
@@ -32,18 +33,32 @@ export interface GroupResult {
 export interface GroupRecord {
   teamId: string;
   played: number;
+  /** Series won 2-0 on the server. */
   wins: number;
+  /** Series won by default. */
+  defaultWins: number;
   draws: number;
+}
+
+/** Points taken off a team's group stage total by the organizers. */
+export interface PointDeduction {
+  /** Points deducted, as a positive number. */
+  points: number;
 }
 
 export interface StandingRow {
   rank: number;
   team: Team;
   played: number;
+  /** All series won, including default wins. */
   wins: number;
+  /** Of `wins`, how many were default wins. */
+  defaultWins: number;
   draws: number;
   losses: number;
+  /** Net points, after any deduction. */
   points: number;
+  deduction?: PointDeduction;
   path: PlayoffPath;
 }
 

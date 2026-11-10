@@ -1,26 +1,45 @@
 "use client";
 
 import { type KeyboardEvent, useRef, useState } from "react";
-import { ScoreDialog } from "./score-dialog";
 import { cn } from "@/lib/cn";
 import { buildGroupRecords, type GroupResultMap, getSeriesScore } from "@/lib/league/group-stage";
-import { getPoints, POINTS_PER_DRAW, POINTS_PER_WIN } from "@/lib/league/standings";
-import type { SeriesScore, Team } from "@/lib/league/types";
+import {
+  getPoints,
+  type PointDeductionMap,
+  POINTS_PER_DEFAULT_WIN,
+  POINTS_PER_DRAW,
+  POINTS_PER_WIN,
+} from "@/lib/league/standings";
+import type { PointDeduction, SeriesScore, Team } from "@/lib/league/types";
+import { DeductionDialog } from "./deduction-dialog";
+import { ScoreDialog } from "./score-dialog";
 
 const SCORE_CELL_CLASS_NAMES: Record<SeriesScore, string> = {
   "2-0": "bg-auh-yellow/20 text-auh-yellow",
   "1-1": "bg-auh-cream/10 text-auh-cream",
   "0-2": "bg-auh-orange/15 text-auh-orange",
+  DW: "bg-auh-yellow/10 text-auh-yellow italic",
+  DL: "bg-auh-orange/10 text-auh-orange italic",
 };
 
 const SCORE_LABELS: Record<SeriesScore, string> = {
   "2-0": `2-0 win, ${POINTS_PER_WIN} pts`,
   "1-1": `1-1 draw, ${POINTS_PER_DRAW} pt`,
   "0-2": "0-2 loss, 0 pts",
+  DW: `default win, ${POINTS_PER_DEFAULT_WIN} pts`,
+  DL: "default loss, 0 pts",
 };
 
-/** Keys that set a score directly. */
-const KEY_TO_SCORE: Record<string, SeriesScore> = { "2": "2-0", "1": "1-1", "0": "0-2" };
+/** Keys that set a score directly: 2 / 1 / 0 for played scores, W / L for a default win / loss. */
+const KEY_TO_SCORE: Record<string, SeriesScore> = {
+  "2": "2-0",
+  "1": "1-1",
+  "0": "0-2",
+  w: "DW",
+  W: "DW",
+  l: "DL",
+  L: "DL",
+};
 
 const ARROW_STEPS: Record<string, [rowStep: number, columnStep: number]> = {
   ArrowUp: [-1, 0],
@@ -31,10 +50,10 @@ const ARROW_STEPS: Record<string, [rowStep: number, columnStep: number]> = {
 
 const TOTAL_COLUMNS = [
   { label: "S", title: "Series played" },
-  { label: "W", title: "Wins" },
+  { label: "W", title: "Wins, including default wins" },
   { label: "D", title: "Draws" },
-  { label: "L", title: "Losses" },
-  { label: "Pts", title: "Points" },
+  { label: "L", title: "Losses, including default losses" },
+  { label: "Pts", title: "Points, after any deduction. Click to deduct points" },
 ] as const;
 
 const HEADER_CELL =
@@ -53,6 +72,10 @@ interface GroupStageMatrixProps {
    * Leave out for a read-only grid (public pages): no editing and no totals columns.
    */
   onChange?: (teamId: string, opponentId: string, score: SeriesScore | undefined) => void;
+  /** Point deductions keyed by team id, shown in the totals. */
+  deductions?: PointDeductionMap;
+  /** Called when a team's deduction is set or removed. */
+  onDeductionChange?: (teamId: string, deduction: PointDeduction | undefined) => void;
 }
 
 /**
@@ -61,16 +84,29 @@ interface GroupStageMatrixProps {
  * (Alpha vs Bravo "2-0" shows as Bravo vs Alpha "0-2"). Totals on the right update live.
  *
  * Rows and columns are numbered by team; click a cell (or press Enter) to open a score dialog
- * with both teams' names and captains. Shortcuts: 2 / 1 / 0 set 2-0 / 1-1 / 0-2, Delete clears,
- * arrow keys move between cells. The row and column of the active cell are highlighted.
+ * with both teams' names and captains. Shortcuts: 2 / 1 / 0 set 2-0 / 1-1 / 0-2, W / L set a default
+ * win / loss, Delete clears, arrow keys move between cells. Clicking a team's points opens a point deduction dialog. The row and column of the active cell are highlighted.
  */
-export function GroupStageMatrix({ teams, results, onChange }: GroupStageMatrixProps) {
+export function GroupStageMatrix({
+  teams,
+  results,
+  onChange,
+  deductions = {},
+  onDeductionChange,
+}: GroupStageMatrixProps) {
   const isReadOnly = !onChange;
   const records = new Map(buildGroupRecords(teams, results).map((record) => [record.teamId, record]));
   const [activeCell, setActiveCell] = useState<{ row: number; column: number } | null>(null);
   const [editingCell, setEditingCell] = useState<{ row: number; column: number } | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const deductionDialogRef = useRef<HTMLDialogElement>(null);
+  const [deductionTarget, setDeductionTarget] = useState<{ team: Team; openCount: number } | null>(null);
+
+  const openDeductionDialog = (team: Team) => {
+    setDeductionTarget((current) => ({ team, openCount: (current?.openCount ?? 0) + 1 }));
+    deductionDialogRef.current?.showModal();
+  };
 
   const openScoreDialog = (row: number, column: number) => {
     setEditingCell({ row, column });
@@ -151,7 +187,7 @@ export function GroupStageMatrix({ teams, results, onChange }: GroupStageMatrixP
               <th
                 key={label}
                 scope="col"
-                className={cn(HEADER_CELL, "text-right", label === "Pts" ? "min-w-16 pr-4" : "min-w-9")}
+                className={cn(HEADER_CELL, "text-right", label === "Pts" ? "min-w-20 pr-4" : "min-w-9")}
               >
                 <abbr title={title} className="no-underline">
                   {label}
@@ -165,7 +201,10 @@ export function GroupStageMatrix({ teams, results, onChange }: GroupStageMatrixP
             const record = records.get(rowTeam.id);
             const played = record?.played ?? 0;
             const wins = record?.wins ?? 0;
+            const defaultWins = record?.defaultWins ?? 0;
             const draws = record?.draws ?? 0;
+            const deduction = deductions[rowTeam.id];
+            const points = getPoints({ wins, defaultWins, draws }, deduction?.points);
             const isActiveRow = activeCell?.row === row;
 
             return (
@@ -259,17 +298,33 @@ export function GroupStageMatrix({ teams, results, onChange }: GroupStageMatrixP
                 {isReadOnly ? null : (
                   <>
                     <td className={cn(BODY_CELL, "px-2 text-right tabular-nums")}>{played}</td>
-                    <td className={cn(BODY_CELL, "px-2 text-right tabular-nums")}>{wins}</td>
+                    <td className={cn(BODY_CELL, "px-2 text-right tabular-nums")}>{wins + defaultWins}</td>
                     <td className={cn(BODY_CELL, "px-2 text-right tabular-nums")}>{draws}</td>
-                    <td className={cn(BODY_CELL, "px-2 text-right tabular-nums")}>{played - wins - draws}</td>
-                    <td
-                      className={cn(
-                        BODY_CELL,
-                        "min-w-16 pr-4 pl-2 text-right text-[15px] font-bold text-auh-yellow tabular-nums",
-                      )}
-                      data-testid={`matrix-points-${rowTeam.id}`}
-                    >
-                      {getPoints(wins, draws)}
+                    <td className={cn(BODY_CELL, "px-2 text-right tabular-nums")}>
+                      {played - wins - defaultWins - draws}
+                    </td>
+                    <td className={cn(BODY_CELL, "p-0")}>
+                      <button
+                        type="button"
+                        onClick={() => openDeductionDialog(rowTeam)}
+                        disabled={!onDeductionChange}
+                        aria-label={`${rowTeam.name}: ${points} pts${deduction ? `, ${deduction.points} deducted` : ""}. Deduct points`}
+                        title={
+                          deduction ? `${deduction.points} pts deducted. Click to change` : "Click to deduct points"
+                        }
+                        className="flex h-9 w-full cursor-pointer items-center justify-end gap-1.5 pr-4 pl-2 text-[15px] font-bold text-auh-yellow tabular-nums hover:bg-auh-ink-soft focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-auh-orange disabled:cursor-default"
+                        data-testid={`matrix-points-${rowTeam.id}`}
+                      >
+                        {deduction ? (
+                          <span
+                            className="text-xs font-semibold text-auh-orange"
+                            data-testid={`matrix-deduction-${rowTeam.id}`}
+                          >
+                            (−{deduction.points})
+                          </span>
+                        ) : null}
+                        {points}
+                      </button>
                     </td>
                   </>
                 )}
@@ -290,6 +345,19 @@ export function GroupStageMatrix({ teams, results, onChange }: GroupStageMatrixP
           onSelect={(score) => {
             if (editingCell) onChange(teams[editingCell.row].id, teams[editingCell.column].id, score);
             dialogRef.current?.close();
+          }}
+        />
+      )}
+
+      {isReadOnly || !onDeductionChange ? null : (
+        <DeductionDialog
+          ref={deductionDialogRef}
+          team={deductionTarget?.team}
+          deduction={deductionTarget ? deductions[deductionTarget.team.id] : undefined}
+          sessionKey={deductionTarget ? `${deductionTarget.team.id}-${deductionTarget.openCount}` : "closed"}
+          onSave={(deduction) => {
+            if (deductionTarget) onDeductionChange(deductionTarget.team.id, deduction);
+            deductionDialogRef.current?.close();
           }}
         />
       )}

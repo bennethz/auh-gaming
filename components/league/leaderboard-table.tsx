@@ -16,7 +16,7 @@ export function LeaderboardTable({ rows, format }: LeaderboardTableProps) {
         title="Group stage leaderboard"
         aside={<PlayoffLegend format={format} />}
       />
-      <StandingsTable rows={rows} />
+      <StandingsTable rows={rows} showSeriesOnMobile />
     </section>
   );
 }

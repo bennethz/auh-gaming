@@ -1,7 +1,10 @@
 import type { GroupRecord, GroupResult, SeriesScore, Team } from "./types";
 
-/** Scores an organizer can enter for a series, from the row team's point of view. */
+/** Played scores an organizer can enter for a series, from the row team's point of view. */
 export const SERIES_SCORES: readonly SeriesScore[] = ["2-0", "1-1", "0-2"];
+
+/** Default results: the row team wins by default ("DW") or loses by default ("DL"). */
+export const DEFAULT_SCORES: readonly SeriesScore[] = ["DW", "DL"];
 
 /**
  * Group stage results keyed by team pair. Each pair is stored once, from the
@@ -18,9 +21,8 @@ function getPairKey(teamId: string, opponentId: string): string {
  * @param score - Score from one team's point of view.
  */
 export function flipSeriesScore(score: SeriesScore): SeriesScore {
-  if (score === "2-0") return "0-2";
-  if (score === "0-2") return "2-0";
-  return "1-1";
+  const flipped: Record<SeriesScore, SeriesScore> = { "2-0": "0-2", "0-2": "2-0", "1-1": "1-1", DW: "DL", DL: "DW" };
+  return flipped[score];
 }
 
 /**
@@ -76,20 +78,21 @@ export function toGroupResultMap(results: GroupResult[]): GroupResultMap {
 }
 
 /**
- * Totals each team's played, won and drawn series from the results.
+ * Totals each team's played, won (on the server and by default) and drawn series from the results.
  * @param teams - All teams in the group.
  * @param results - All group stage results.
  * @returns One record per team, in team order.
  */
 export function buildGroupRecords(teams: Team[], results: GroupResultMap): GroupRecord[] {
   return teams.map((team) => {
-    const record: GroupRecord = { teamId: team.id, played: 0, wins: 0, draws: 0 };
+    const record: GroupRecord = { teamId: team.id, played: 0, wins: 0, defaultWins: 0, draws: 0 };
     for (const opponent of teams) {
       if (opponent.id === team.id) continue;
       const score = getSeriesScore(results, team.id, opponent.id);
       if (!score) continue;
       record.played += 1;
       if (score === "2-0") record.wins += 1;
+      if (score === "DW") record.defaultWins += 1;
       if (score === "1-1") record.draws += 1;
     }
     return record;

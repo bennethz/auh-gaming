@@ -2,8 +2,8 @@
 
 import type { Ref } from "react";
 import { cn } from "@/lib/cn";
-import { flipSeriesScore, SERIES_SCORES } from "@/lib/league/group-stage";
-import { POINTS_PER_DRAW, POINTS_PER_WIN } from "@/lib/league/standings";
+import { DEFAULT_SCORES, flipSeriesScore, SERIES_SCORES } from "@/lib/league/group-stage";
+import { POINTS_PER_DEFAULT_WIN, POINTS_PER_DRAW, POINTS_PER_WIN } from "@/lib/league/standings";
 import type { SeriesScore, Team } from "@/lib/league/types";
 
 type NumberedTeam = Team & { number: number };
@@ -29,8 +29,29 @@ export function ScoreDialog({ ref, team, opponent, score, onSelect }: ScoreDialo
     if (!team || !opponent) return option;
     if (option === "2-0") return `${team.name} wins · ${POINTS_PER_WIN} pts`;
     if (option === "0-2") return `${opponent.name} wins · ${POINTS_PER_WIN} pts`;
+    if (option === "DW") return `${team.name} wins by default · ${POINTS_PER_DEFAULT_WIN} pts`;
+    if (option === "DL") return `${opponent.name} wins by default · ${POINTS_PER_DEFAULT_WIN} pts`;
     return `Draw · ${POINTS_PER_DRAW} pt each`;
   };
+
+  const renderOption = (option: SeriesScore) => (
+    <button
+      key={option}
+      type="button"
+      aria-pressed={score === option}
+      onClick={() => onSelect(option)}
+      className={cn(
+        "flex min-h-12 items-center gap-4 border-2 px-4 text-left focus-visible:outline-3 focus-visible:outline-auh-orange",
+        score === option
+          ? "border-auh-yellow bg-auh-yellow text-auh-ink"
+          : "border-auh-ink-soft hover:border-auh-cream-dim",
+      )}
+      data-testid={`score-option-${option}`}
+    >
+      <span className="w-12 font-display text-[28px] leading-none tabular-nums">{option}</span>
+      <span className="text-[15px]">{describeScore(option)}</span>
+    </button>
+  );
 
   return (
     <dialog
@@ -52,24 +73,14 @@ export function ScoreDialog({ ref, team, opponent, score, onSelect }: ScoreDialo
           </div>
 
           <div role="group" aria-label={`Score for ${team.name}`} className="flex flex-col gap-2">
-            {SERIES_SCORES.map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={score === option}
-                onClick={() => onSelect(option)}
-                className={cn(
-                  "flex min-h-12 items-center gap-4 border-2 px-4 text-left focus-visible:outline-3 focus-visible:outline-auh-orange",
-                  score === option
-                    ? "border-auh-yellow bg-auh-yellow text-auh-ink"
-                    : "border-auh-ink-soft hover:border-auh-cream-dim",
-                )}
-                data-testid={`score-option-${option}`}
-              >
-                <span className="w-12 font-display text-[28px] leading-none tabular-nums">{option}</span>
-                <span className="text-[15px]">{describeScore(option)}</span>
-              </button>
-            ))}
+            {SERIES_SCORES.map(renderOption)}
+          </div>
+
+          <div role="group" aria-labelledby="default-result-label" className="flex flex-col gap-2">
+            <p id="default-result-label" className="text-[13px] font-semibold text-auh-cream-dim">
+              Default result (forfeit or no-show)
+            </p>
+            {DEFAULT_SCORES.map(renderOption)}
           </div>
 
           <p className="text-[13px] text-auh-cream-dim">

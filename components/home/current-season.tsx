@@ -3,13 +3,16 @@ import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Badge } from "@/components/ui/tag";
 import { formatLongDate } from "@/lib/format-date";
-import { DISCORD_INVITE_URL, getStandingsAsOf, GROUP_RECORDS, SEASON, TEAMS } from "@/lib/league/sample-data";
+import { getLeagueData, getStandingsAsOf } from "@/lib/league/data";
+import { buildGroupRecords } from "@/lib/league/group-stage";
+import { DISCORD_INVITE_URL, SEASON } from "@/lib/league/sample-data";
 import { buildStandings } from "@/lib/league/standings";
 
 /** Current Civil War season: the full group stage table as of the last played match. */
-export function CurrentSeason() {
-  const standings = buildStandings(GROUP_RECORDS, TEAMS, SEASON.playoffFormat);
-  const asOf = getStandingsAsOf();
+export async function CurrentSeason() {
+  const { teams, groupResults, deductions, matches } = await getLeagueData();
+  const standings = buildStandings(buildGroupRecords(teams, groupResults), teams, SEASON.playoffFormat, deductions);
+  const asOf = getStandingsAsOf(matches);
 
   return (
     <section aria-labelledby="current-season-title" data-testid="current-season">
@@ -25,12 +28,13 @@ export function CurrentSeason() {
           Group stage standings
           {asOf ? (
             <>
-              {" "}as of <time dateTime={asOf}>{formatLongDate(asOf)}</time>
+              {" "}
+              as of <time dateTime={asOf}>{formatLongDate(asOf)}</time>
             </>
           ) : null}
         </p>
 
-        <StandingsTable rows={standings} showPlayoffs={false} rowTestId="home-standings-row" />
+        <StandingsTable rows={standings} showPlayoffs={false} showSeriesOnMobile rowTestId="home-standings-row" />
 
         <p className="mt-4 text-[15px]">
           Want to play next season? Sign up and get drafted into a team.{" "}

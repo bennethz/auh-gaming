@@ -1,10 +1,10 @@
 /**
- * Static sample data for the first version of the site.
- * Replace with real data sources (database, Discord API) when the backend exists.
+ * Static season config, plus sample league data used to seed Supabase (supabase/seed.sql)
+ * and as a fallback when Supabase isn't configured. Live data is read through `getLeagueData` in ./data.ts.
  * Values in square brackets are content the community still needs to provide.
  */
-import { buildGroupRecords, toGroupResultMap } from "./group-stage";
-import type { GroupRecord, GroupResult, Match, PlayoffFormat, SeriesScore, Team } from "./types";
+import type { PointDeductionMap } from "./standings";
+import type { GroupResult, Match, PlayoffFormat, SeriesScore, Team } from "./types";
 
 /** Top 8 go to the upper bracket, 9th to 16th to the lower bracket. */
 const PLAYOFF_FORMAT: PlayoffFormat = "8-upper-8-lower";
@@ -53,8 +53,9 @@ export const TEAMS: Team[] = TEAM_CODENAMES.map((codename) => ({
 /** Rounds of the round robin with sample results. Each team plays one series per round. */
 const SAMPLE_ROUNDS_PLAYED = 7;
 
-/** Deterministic sample score: lower-listed teams are stronger, with some draws and upsets. */
+/** Deterministic sample score: lower-listed teams are stronger, with some draws, upsets and default wins. */
 function getSampleScore(indexA: number, indexB: number): SeriesScore {
+  if ((indexA * 7 + indexB) % 23 === 0) return indexA < indexB ? "DW" : "DL";
   if ((indexA + indexB) % 4 === 0) return "1-1";
   const isUpset = (indexA * 3 + indexB) % 5 === 0;
   return indexA < indexB !== isUpset ? "2-0" : "0-2";
@@ -87,7 +88,10 @@ function buildSampleGroupResults(teams: Team[], roundsPlayed: number): GroupResu
 /** Sample group stage series results. Will come from the database. */
 export const GROUP_RESULTS: GroupResult[] = buildSampleGroupResults(TEAMS, SAMPLE_ROUNDS_PLAYED);
 
-export const GROUP_RECORDS: GroupRecord[] = buildGroupRecords(TEAMS, toGroupResultMap(GROUP_RESULTS));
+/** Sample point deductions. Will come from the database. */
+export const POINT_DEDUCTIONS: PointDeductionMap = {
+  november: { points: 1 },
+};
 
 export const MATCHES: Match[] = [
   {
@@ -146,13 +150,3 @@ export const MATCHES: Match[] = [
   },
 ];
 
-/**
- * Returns the start time of the most recently played match: the date the standings are current as of.
- * @returns ISO date-time of the last played match, or undefined before any match is played.
- */
-export function getStandingsAsOf(): string | undefined {
-  return MATCHES.filter((match) => match.status === "played")
-    .map((match) => match.startsAt)
-    .sort()
-    .at(-1);
-}

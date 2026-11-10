@@ -21,7 +21,10 @@ export function PlayoffLegend({ format, className }: { format: PlayoffFormat; cl
         <li key={entry.path} className="flex items-center gap-1.5">
           <span
             aria-hidden="true"
-            className={cn("inline-block size-3 border-2 border-auh-ink", PLAYOFF_PATH_STYLES[entry.path].swatchClassName)}
+            className={cn(
+              "inline-block size-3 border-2 border-auh-ink",
+              PLAYOFF_PATH_STYLES[entry.path].swatchClassName,
+            )}
           />
           {entry.label}
         </li>
@@ -36,76 +39,143 @@ interface StandingsTableProps {
   showPlayoffs?: boolean;
   /** Test id for each row, so the same table can appear on different pages. */
   rowTestId?: string;
+  /** On small screens, show the series played ("S") column instead of wins ("W"). */
+  showSeriesOnMobile?: boolean;
 }
 
-/** Full group stage table on a navy card: rank, team, record, points and (optionally) playoff path. */
-export function StandingsTable({ rows, showPlayoffs = true, rowTestId = "leaderboard-row" }: StandingsTableProps) {
+/**
+ * Full group stage table on a navy card: rank, team, record, points and (optionally) playoff path.
+ * Points are net of deductions; deducted teams get an asterisk and a footnote.
+ */
+export function StandingsTable({
+  rows,
+  showPlayoffs = true,
+  rowTestId = "leaderboard-row",
+  showSeriesOnMobile = false,
+}: StandingsTableProps) {
+  const deductedRows = rows.filter((row) => row.deduction);
+  // Below the sm breakpoint only one of Series / W fits next to Pts.
+  const seriesColumn = showSeriesOnMobile ? undefined : OPTIONAL_COLUMN;
+  const winsColumn = showSeriesOnMobile ? OPTIONAL_COLUMN : undefined;
+
   return (
-    <div className="notch overflow-x-auto bg-auh-ink text-auh-cream">
-      <table className="w-full border-collapse">
-        <caption className="sr-only">Group stage standings, ranked by points</caption>
-        <thead>
-          <tr>
-            <th scope="col" className={HEADER_CELL}>
-              <abbr title="Rank" className="no-underline">#</abbr>
-            </th>
-            <th scope="col" className={HEADER_CELL}>Team</th>
-            <th scope="col" className={cn(HEADER_CELL, OPTIONAL_COLUMN)}>Captain</th>
-            <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>
-              Series
-            </th>
-            <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL)}>
-              <abbr title="Wins" className="no-underline">W</abbr>
-            </th>
-            <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>
-              <abbr title="Draws" className="no-underline">D</abbr>
-            </th>
-            <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>
-              <abbr title="Losses" className="no-underline">L</abbr>
-            </th>
-            <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL)}>
-              <abbr title="Points" className="no-underline">Pts</abbr>
-            </th>
-            {showPlayoffs ? (
+    <div>
+      <div className="notch overflow-x-auto bg-auh-ink text-auh-cream">
+        <table className="w-full border-collapse">
+          <caption className="sr-only">Group stage standings, ranked by points</caption>
+          <thead>
+            <tr>
               <th scope="col" className={HEADER_CELL}>
-                Playoffs
+                <abbr title="Rank" className="no-underline">
+                  #
+                </abbr>
               </th>
-            ) : null}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const pathStyle = PLAYOFF_PATH_STYLES[row.path];
-            return (
-              <tr key={row.team.id} className={showPlayoffs ? pathStyle.rowClassName : undefined} data-testid={rowTestId}>
-                <td
-                  className={cn(
-                    BODY_CELL,
-                    "font-display text-[30px] leading-none",
-                    showPlayoffs ? pathStyle.rankClassName : "text-auh-yellow",
-                  )}
-                >
-                  {row.rank}
-                </td>
-                <th scope="row" className={cn(BODY_CELL, "text-left font-semibold")}>
-                  {row.team.name}
+              <th scope="col" className={HEADER_CELL}>
+                Team
+              </th>
+              <th scope="col" className={cn(HEADER_CELL, OPTIONAL_COLUMN)}>
+                Captain
+              </th>
+              <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL, seriesColumn)}>
+                <abbr title="Series played" className="no-underline sm:hidden">
+                  S
+                </abbr>
+                <span className="hidden sm:inline">Series</span>
+              </th>
+              <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL, winsColumn)}>
+                <abbr title="Wins, including default wins" className="no-underline">
+                  W
+                </abbr>
+              </th>
+              <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>
+                <abbr title="Draws" className="no-underline">
+                  D
+                </abbr>
+              </th>
+              <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>
+                <abbr title="Losses" className="no-underline">
+                  L
+                </abbr>
+              </th>
+              <th scope="col" className={cn(HEADER_CELL, NUMBER_CELL)}>
+                <abbr title="Points, after any deduction" className="no-underline">
+                  Pts
+                </abbr>
+              </th>
+              {showPlayoffs ? (
+                <th scope="col" className={HEADER_CELL}>
+                  Playoffs
                 </th>
-                <td className={cn(BODY_CELL, OPTIONAL_COLUMN, "text-auh-cream-dim")}>{row.team.captain}</td>
-                <td className={cn(BODY_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>{row.played}</td>
-                <td className={cn(BODY_CELL, NUMBER_CELL)}>{row.wins}</td>
-                <td className={cn(BODY_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>{row.draws}</td>
-                <td className={cn(BODY_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>{row.losses}</td>
-                <td className={cn(BODY_CELL, NUMBER_CELL, "font-bold text-auh-yellow")}>{row.points}</td>
-                {showPlayoffs ? (
-                  <td className={BODY_CELL}>
-                    <Tag tone={pathStyle.tagTone}>{row.path}</Tag>
+              ) : null}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const pathStyle = PLAYOFF_PATH_STYLES[row.path];
+              return (
+                <tr
+                  key={row.team.id}
+                  className={showPlayoffs ? pathStyle.rowClassName : undefined}
+                  data-testid={rowTestId}
+                >
+                  <td
+                    className={cn(
+                      BODY_CELL,
+                      "font-display text-[30px] leading-none",
+                      showPlayoffs ? pathStyle.rankClassName : "text-auh-yellow",
+                    )}
+                  >
+                    {row.rank}
                   </td>
-                ) : null}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <th scope="row" className={cn(BODY_CELL, "text-left font-semibold")}>
+                    {row.team.name}
+                    {/* Mobile-only second line standing in for the hidden Captain and Series columns. */}
+                    <span
+                      className="mt-0.5 block text-[13px] font-normal text-auh-cream-dim sm:hidden"
+                      data-testid="standings-row-mobile-meta"
+                    >
+                      {row.team.captain}
+                      {showSeriesOnMobile ? null : ` · ${row.played} series`}
+                    </span>
+                  </th>
+                  <td className={cn(BODY_CELL, OPTIONAL_COLUMN, "text-auh-cream-dim")}>{row.team.captain}</td>
+                  <td className={cn(BODY_CELL, NUMBER_CELL, seriesColumn)}>{row.played}</td>
+                  <td className={cn(BODY_CELL, NUMBER_CELL, winsColumn)}>{row.wins}</td>
+                  <td className={cn(BODY_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>{row.draws}</td>
+                  <td className={cn(BODY_CELL, NUMBER_CELL, OPTIONAL_COLUMN)}>{row.losses}</td>
+                  <td className={cn(BODY_CELL, NUMBER_CELL, "font-bold text-auh-yellow")}>
+                    {row.points}
+                    {row.deduction ? (
+                      <abbr
+                        title={`${row.deduction.points} pts deducted`}
+                        className="ml-0.5 text-auh-orange no-underline"
+                        data-testid={`deduction-marker-${row.team.id}`}
+                      >
+                        *
+                      </abbr>
+                    ) : null}
+                  </td>
+                  {showPlayoffs ? (
+                    <td className={BODY_CELL}>
+                      <Tag tone={pathStyle.tagTone}>{row.path}</Tag>
+                    </td>
+                  ) : null}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {deductedRows.length > 0 ? (
+        <ul className="mt-2.5 flex flex-col gap-1 text-[13px] text-auh-olive" data-testid="deduction-notes">
+          {deductedRows.map((row) => (
+            <li key={row.team.id}>
+              <span className="font-semibold text-auh-orange">*</span> {row.team.name}: {row.deduction?.points} pts
+              deducted.
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

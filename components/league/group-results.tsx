@@ -15,7 +15,7 @@ export function GroupResults({ teams, results }: GroupResultsProps) {
       <SectionHeading
         id="group-results-title"
         title="Group stage results"
-        description="Scores are from the row team’s side. Hover a column number for the team."
+        description="Scores are from the row team’s side. DW = default win, DL = default loss. Hover a column number for the team."
       />
       <GroupStageMatrix teams={teams} results={results} />
     </section>
