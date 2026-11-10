@@ -4,8 +4,8 @@ import { FORMAT_RULES } from "@/lib/league/standings";
 import type { PlayoffFormat, StandingRow } from "@/lib/league/types";
 import { PLAYOFF_PATH_STYLES } from "./playoff-path";
 
-const HEADER_CELL = "border-b border-auh-ink-soft px-[18px] py-3.5 text-left text-xs font-semibold text-auh-cream-dim";
-const BODY_CELL = "border-b border-auh-ink-soft px-[18px] py-2.5 text-[15px]";
+const HEADER_CELL = "border-b border-auh-ink-soft px-2.5 py-3.5 sm:px-[18px] text-left text-xs font-semibold text-auh-cream-dim";
+const BODY_CELL = "border-b border-auh-ink-soft px-2.5 py-2.5 sm:px-[18px] text-[15px]";
 const NUMBER_CELL = "text-right tabular-nums";
 /** Low-priority columns hidden on small screens so the table fits without sideways scrolling. */
 const OPTIONAL_COLUMN = "hidden sm:table-cell";

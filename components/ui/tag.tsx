@@ -21,7 +21,7 @@ interface TagProps {
 /** Small label in body type, for categories and metadata. */
 export function Tag({ tone = "ink", className, children, ...rest }: TagProps) {
   return (
-    <span className={cn("px-2 py-[3px] text-xs font-semibold", TONE_CLASS_NAMES[tone], className)} {...rest}>
+    <span className={cn("inline-block px-2 py-[3px] text-xs font-semibold whitespace-nowrap", TONE_CLASS_NAMES[tone], className)} {...rest}>
       {children}
     </span>
   );

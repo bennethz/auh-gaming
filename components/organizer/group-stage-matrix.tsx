@@ -150,7 +150,9 @@ export function GroupStageMatrix({
 
   return (
     <div
-      className="notch max-h-[75vh] overflow-auto bg-auh-ink text-auh-cream"
+      // `relative` keeps the cells' absolutely positioned sr-only labels inside this scroller;
+      // without it they anchor to <body> and widen the whole page on mobile.
+      className="notch relative max-h-[75vh] overflow-auto bg-auh-ink text-auh-cream"
       onMouseLeave={() => setActiveCell(null)}
       data-testid="group-stage-matrix"
     >

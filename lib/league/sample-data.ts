@@ -6,14 +6,14 @@
 import type { PointDeductionMap } from "./standings";
 import type { GroupResult, Match, PlayoffFormat, SeriesScore, Team } from "./types";
 
-/** Top 8 go to the upper bracket, 9th to 16th to the lower bracket. */
-const PLAYOFF_FORMAT: PlayoffFormat = "8-upper-8-lower";
+/** Top 8 go to the upper bracket, 9th to 14th to lower round 2, 15th to 18th to lower round 1. */
+const PLAYOFF_FORMAT: PlayoffFormat = "8-upper-10-lower";
 
 export const SEASON = {
   number: 15,
   leagueName: "Civil War",
   game: "Dota 2",
-  teamCount: 16,
+  teamCount: 18,
   playoffFormat: PLAYOFF_FORMAT,
 } as const;
 
@@ -42,6 +42,8 @@ const TEAM_CODENAMES = [
   "November",
   "Oscar",
   "Papa",
+  "Quebec",
+  "Romeo",
 ] as const;
 
 export const TEAMS: Team[] = TEAM_CODENAMES.map((codename) => ({

@@ -17,7 +17,13 @@ export const PLAYOFF_PATH_STYLES: Record<PlayoffPath, PathStyle> = {
     rowClassName: "bg-auh-yellow/[.08]",
     rankClassName: "text-auh-yellow",
   },
-  Lower: {
+  "Lower R2": {
+    tagTone: "cream",
+    swatchClassName: "bg-auh-cream",
+    rowClassName: "",
+    rankClassName: "text-auh-cream",
+  },
+  "Lower R1": {
     tagTone: "orange",
     swatchClassName: "bg-auh-orange",
     rowClassName: "",

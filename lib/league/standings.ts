@@ -35,9 +35,24 @@ export const FORMAT_RULES: Record<PlayoffFormat, FormatRules> = {
     summary: "Top 8 go to the upper bracket, 9th to 16th to the lower bracket.",
     legend: [
       { path: "Upper", label: "1 to 8: Upper bracket" },
-      { path: "Lower", label: "9 to 16: Lower bracket" },
+      { path: "Lower R1", label: "9 to 16: Lower bracket" },
     ],
   },
+  "8-upper-10-lower": {
+    summary:
+      "Top 8 go to the upper bracket. 9th to 14th start in the lower bracket's second round, 15th to 18th in its first round.",
+    legend: [
+      { path: "Upper", label: "1 to 8: Upper bracket" },
+      { path: "Lower R2", label: "9 to 14: Lower bracket, round 2" },
+      { path: "Lower R1", label: "15 to 18: Lower bracket, round 1" },
+    ],
+  },
+};
+
+/** Last group stage rank in the upper bracket, and in lower round 2, per format. */
+const PATH_CUTOFFS: Record<PlayoffFormat, { lastUpperRank: number; lastLowerR2Rank: number }> = {
+  "8-upper-8-lower": { lastUpperRank: 8, lastLowerR2Rank: 8 },
+  "8-upper-10-lower": { lastUpperRank: 8, lastLowerR2Rank: 14 },
 };
 
 /**
@@ -46,8 +61,9 @@ export const FORMAT_RULES: Record<PlayoffFormat, FormatRules> = {
  * @param format - The season's playoff format.
  */
 export function getPlayoffPath(rank: number, format: PlayoffFormat): PlayoffPath {
-  const upperBracketSize = { "8-upper-8-lower": 8 }[format];
-  return rank <= upperBracketSize ? "Upper" : "Lower";
+  const { lastUpperRank, lastLowerR2Rank } = PATH_CUTOFFS[format];
+  if (rank <= lastUpperRank) return "Upper";
+  return rank <= lastLowerR2Rank ? "Lower R2" : "Lower R1";
 }
 
 /**
