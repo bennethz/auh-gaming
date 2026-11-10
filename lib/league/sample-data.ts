@@ -6,8 +6,8 @@
 import type { PointDeductionMap } from "./standings";
 import type { GroupResult, Match, PlayoffFormat, SeriesScore, Team } from "./types";
 
-/** Top 8 go to the upper bracket, 9th to 14th to lower round 2, 15th to 18th to lower round 1. */
-const PLAYOFF_FORMAT: PlayoffFormat = "8-upper-10-lower";
+/** Top 2 advance to the upper semifinals, 3rd to 10th to the upper bracket, 11th to 18th to the lower bracket. */
+const PLAYOFF_FORMAT: PlayoffFormat = "2-advanced-8-upper-8-lower";
 
 export const SEASON = {
   number: 15,

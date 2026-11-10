@@ -17,7 +17,8 @@ export type SaveLeagueResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Replaces the stored group results, point deductions and playoff entries with the organizer's edits,
- * then refreshes the cached league data so public pages show the change.
+ * stamps the save time shown as the homepage's "standings as of" date, then refreshes the cached
+ * league data so public pages show the change.
  * NOTE: No auth check. The access code gate is client-side only; anyone who can call this action can write.
  * @param input - The full edited state from the organizer screen.
  */
@@ -44,6 +45,11 @@ export async function saveLeague(input: SaveLeagueInput): Promise<SaveLeagueResu
     await replaceRows(supabase, "group_results", "team_a_id", groupRows);
     await replaceRows(supabase, "point_deductions", "team_id", deductionRows);
     await replaceRows(supabase, "playoff_entries", "match_id", playoffRows);
+
+    const { error: metaError } = await supabase
+      .from("league_meta")
+      .upsert({ id: true, standings_updated_at: new Date().toISOString() });
+    if (metaError) throw new Error(`league_meta: ${metaError.message}`);
 
     updateTag(LEAGUE_CACHE_TAG);
     return { ok: true };

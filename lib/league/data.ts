@@ -16,6 +16,8 @@ export interface LeagueData {
   deductions: PointDeductionMap;
   matches: Match[];
   playoffEntries: PlayoffEntryMap;
+  /** When an organizer last saved, as an ISO 8601 date-time. Undefined until the first save. */
+  standingsUpdatedAt?: string;
 }
 
 /**
@@ -39,15 +41,16 @@ export async function getLeagueData(): Promise<LeagueData> {
   }
 
   const supabase = getSupabaseReadClient();
-  const [teamsResult, resultsResult, deductionsResult, matchesResult, playoffResult] = await Promise.all([
+  const [teamsResult, resultsResult, deductionsResult, matchesResult, playoffResult, metaResult] = await Promise.all([
     supabase.from("teams").select("id, name, captain").order("sort_order"),
     supabase.from("group_results").select("team_a_id, team_b_id, score"),
     supabase.from("point_deductions").select("team_id, points"),
     supabase.from("matches").select("*").order("starts_at"),
     supabase.from("playoff_entries").select("match_id, score_a, score_b, match_date"),
+    supabase.from("league_meta").select("standings_updated_at").maybeSingle(),
   ]);
 
-  for (const { error } of [teamsResult, resultsResult, deductionsResult, matchesResult, playoffResult]) {
+  for (const { error } of [teamsResult, resultsResult, deductionsResult, matchesResult, playoffResult, metaResult]) {
     if (error) throw new Error(`Supabase query failed: ${error.message}`);
   }
 
@@ -79,15 +82,21 @@ export async function getLeagueData(): Promise<LeagueData> {
         },
       ]),
     ),
+    standingsUpdatedAt: metaResult.data?.standings_updated_at ?? undefined,
   };
 }
 
 /**
- * Start time of the most recently played match: the date the standings are current as of.
- * @param matches - All matches.
- * @returns ISO date-time of the last played match, or undefined before any match is played.
+ * The date the standings are current as of: when an organizer last saved, or, before the first save,
+ * the start time of the most recently played match.
+ * @param data - League data with the last save time and all matches.
+ * @returns ISO date-time, or undefined before any save or played match.
  */
-export function getStandingsAsOf(matches: Match[]): string | undefined {
+export function getStandingsAsOf({
+  standingsUpdatedAt,
+  matches,
+}: Pick<LeagueData, "standingsUpdatedAt" | "matches">): string | undefined {
+  if (standingsUpdatedAt) return standingsUpdatedAt;
   return matches
     .filter((match) => match.status === "played")
     .map((match) => match.startsAt)

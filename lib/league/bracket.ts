@@ -110,11 +110,84 @@ function buildEightUpperTenLower(): Bracket[] {
 }
 
 /**
+ * 18 teams: seeds 1 and 2 advance straight to the upper semifinals (upper round 3).
+ * Seeds 3 to 10 play two upper rounds to join them. Seeds 11 to 18 start in lower round 1.
+ */
+function buildTwoAdvancedEightUpperEightLower(): Bracket[] {
+  return [
+    {
+      name: "Upper bracket",
+      rounds: [
+        bestOfThree("Round 1", [
+          match("U1", seed(3), seed(10)),
+          match("U2", seed(6), seed(7)),
+          match("U3", seed(4), seed(9)),
+          match("U4", seed(5), seed(8)),
+        ]),
+        bestOfThree("Round 2", [
+          match("U5", winnerOf("U3"), winnerOf("U4")),
+          match("U6", winnerOf("U1"), winnerOf("U2")),
+        ]),
+        bestOfThree("Semifinals", [
+          match("U7", seed(1), winnerOf("U5")),
+          match("U8", seed(2), winnerOf("U6")),
+        ]),
+        bestOfThree("Upper final", [match("U9", winnerOf("U7"), winnerOf("U8"))]),
+      ],
+    },
+    {
+      name: "Lower bracket",
+      rounds: [
+        bestOfThree("Round 1", [
+          match("L1", seed(11), seed(18)),
+          match("L2", seed(14), seed(15)),
+          match("L3", seed(12), seed(17)),
+          match("L4", seed(13), seed(16)),
+        ]),
+        bestOfThree("Round 2", [
+          match("L5", winnerOf("L1"), loserOf("U4")),
+          match("L6", winnerOf("L2"), loserOf("U3")),
+          match("L7", winnerOf("L3"), loserOf("U2")),
+          match("L8", winnerOf("L4"), loserOf("U1")),
+        ]),
+        bestOfThree("Round 3", [
+          match("L9", winnerOf("L5"), winnerOf("L6")),
+          match("L10", winnerOf("L7"), winnerOf("L8")),
+        ]),
+        bestOfThree("Round 4", [
+          match("L11", winnerOf("L9"), loserOf("U6")),
+          match("L12", winnerOf("L10"), loserOf("U5")),
+        ]),
+        bestOfThree("Round 5", [
+          match("L13", winnerOf("L11"), loserOf("U8")),
+          match("L14", winnerOf("L12"), loserOf("U7")),
+        ]),
+        bestOfThree("Round 6", [match("L15", winnerOf("L13"), winnerOf("L14"))]),
+        bestOfThree("Lower final", [match("L16", winnerOf("L15"), loserOf("U9"))]),
+      ],
+    },
+    {
+      name: "Grand final",
+      rounds: [
+        { name: "Grand final", bestOf: "Bo5", matches: [match("GF", winnerOf("U9"), winnerOf("L16"))] },
+      ],
+    },
+  ];
+}
+
+/**
  * Builds the double elimination playoff brackets with placeholder slots.
  * Slots fill in with team names once the group stage ends.
  * @param format - The season's playoff format.
  * @returns Upper bracket, lower bracket and grand final, in that order.
  */
 export function buildPlayoffBrackets(format: PlayoffFormat): Bracket[] {
-  return format === "8-upper-10-lower" ? buildEightUpperTenLower() : buildEightUpperEightLower();
+  switch (format) {
+    case "8-upper-10-lower":
+      return buildEightUpperTenLower();
+    case "2-advanced-8-upper-8-lower":
+      return buildTwoAdvancedEightUpperEightLower();
+    default:
+      return buildEightUpperEightLower();
+  }
 }

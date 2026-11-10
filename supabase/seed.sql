@@ -1,5 +1,5 @@
 -- Sample data generated from lib/league/sample-data.ts. Safe to re-run.
-truncate playoff_entries, matches, point_deductions, group_results, teams cascade;
+truncate league_meta, playoff_entries, matches, point_deductions, group_results, teams cascade;
 
 insert into teams (id, name, captain, sort_order) values
 ('alpha', 'Team Alpha', '[Captain name]', 0),

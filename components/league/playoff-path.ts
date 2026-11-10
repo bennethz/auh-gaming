@@ -11,6 +11,12 @@ interface PathStyle {
 
 /** Visual treatment for each playoff path in the leaderboard. */
 export const PLAYOFF_PATH_STYLES: Record<PlayoffPath, PathStyle> = {
+  Advanced: {
+    tagTone: "ink",
+    swatchClassName: "bg-auh-ink",
+    rowClassName: "bg-auh-yellow/[.16]",
+    rankClassName: "text-auh-yellow",
+  },
   Upper: {
     tagTone: "yellow",
     swatchClassName: "bg-auh-yellow",
