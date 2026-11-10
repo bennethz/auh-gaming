@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "dev:mvp": "node --env-file=.env.mvp node_modules/next/dist/bin/next dev",
-    "build:mvp": "node --env-file=.env.mvp node_modules/next/dist/bin/next build",
-    "start:mvp": "node --env-file=.env.mvp node_modules/next/dist/bin/next start"
+    "dev:mvp": "node scripts/next-with-env.mjs .env.mvp dev",
+    "build:mvp": "node scripts/next-with-env.mjs .env.mvp build",
+    "start:mvp": "node scripts/next-with-env.mjs .env.mvp start",
+    "dev:prod": "node scripts/next-with-env.mjs .env.prod dev",
+    "build:prod": "node scripts/next-with-env.mjs .env.prod build",
+    "start:prod": "node scripts/next-with-env.mjs .env.prod start"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
