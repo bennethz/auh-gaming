@@ -3,9 +3,9 @@ export type PlayoffFormat = "8-upper-8-lower" | "8-upper-10-lower" | "2-advanced
 
 /**
  * Where a team goes after the group stage. "Advanced" teams skip straight to the upper semifinals,
- * and "Lower R2" teams skip the lower bracket's first round.
+ * while all remaining lower-bracket teams are marked as "Lower" in the standings.
  */
-export type PlayoffPath = "Advanced" | "Upper" | "Lower R2" | "Lower R1";
+export type PlayoffPath = "Advanced" | "Upper" | "Lower";
 
 export type MatchStage = "Group stage" | "Upper bracket" | "Lower bracket" | "Grand final";
 

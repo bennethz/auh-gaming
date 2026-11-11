@@ -35,16 +35,14 @@ export const FORMAT_RULES: Record<PlayoffFormat, FormatRules> = {
     summary: "Top 8 go to the upper bracket, 9th to 16th to the lower bracket.",
     legend: [
       { path: "Upper", label: "1 to 8: Upper bracket" },
-      { path: "Lower R1", label: "9 to 16: Lower bracket" },
+      { path: "Lower", label: "9 to 16: Lower bracket" },
     ],
   },
   "8-upper-10-lower": {
-    summary:
-      "Top 8 go to the upper bracket. 9th to 14th start in the lower bracket's second round, 15th to 18th in its first round.",
+    summary: "Top 8 go to the upper bracket. 9th to 18th start in the lower bracket.",
     legend: [
       { path: "Upper", label: "1 to 8: Upper bracket" },
-      { path: "Lower R2", label: "9 to 14: Lower bracket, round 2" },
-      { path: "Lower R1", label: "15 to 18: Lower bracket, round 1" },
+      { path: "Lower", label: "9 to 18: Lower bracket" },
     ],
   },
   "2-advanced-8-upper-8-lower": {
@@ -53,16 +51,16 @@ export const FORMAT_RULES: Record<PlayoffFormat, FormatRules> = {
     legend: [
       { path: "Advanced", label: "1 to 2: Upper semifinals" },
       { path: "Upper", label: "3 to 10: Upper bracket" },
-      { path: "Lower R1", label: "11 to 18: Lower bracket" },
+      { path: "Lower", label: "11 to 18: Lower bracket" },
     ],
   },
 };
 
-/** Last group stage rank that advances to the upper semifinals, in the upper bracket, and in lower round 2, per format. */
-const PATH_CUTOFFS: Record<PlayoffFormat, { lastAdvancedRank: number; lastUpperRank: number; lastLowerR2Rank: number }> = {
-  "8-upper-8-lower": { lastAdvancedRank: 0, lastUpperRank: 8, lastLowerR2Rank: 8 },
-  "8-upper-10-lower": { lastAdvancedRank: 0, lastUpperRank: 8, lastLowerR2Rank: 14 },
-  "2-advanced-8-upper-8-lower": { lastAdvancedRank: 2, lastUpperRank: 10, lastLowerR2Rank: 10 },
+/** Last group stage rank that advances to the upper semifinals and upper bracket, per format. */
+const PATH_CUTOFFS: Record<PlayoffFormat, { lastAdvancedRank: number; lastUpperRank: number }> = {
+  "8-upper-8-lower": { lastAdvancedRank: 0, lastUpperRank: 8 },
+  "8-upper-10-lower": { lastAdvancedRank: 0, lastUpperRank: 8 },
+  "2-advanced-8-upper-8-lower": { lastAdvancedRank: 2, lastUpperRank: 10 },
 };
 
 /**
@@ -71,10 +69,10 @@ const PATH_CUTOFFS: Record<PlayoffFormat, { lastAdvancedRank: number; lastUpperR
  * @param format - The season's playoff format.
  */
 export function getPlayoffPath(rank: number, format: PlayoffFormat): PlayoffPath {
-  const { lastAdvancedRank, lastUpperRank, lastLowerR2Rank } = PATH_CUTOFFS[format];
+  const { lastAdvancedRank, lastUpperRank } = PATH_CUTOFFS[format];
   if (rank <= lastAdvancedRank) return "Advanced";
   if (rank <= lastUpperRank) return "Upper";
-  return rank <= lastLowerR2Rank ? "Lower R2" : "Lower R1";
+  return "Lower";
 }
 
 /**
