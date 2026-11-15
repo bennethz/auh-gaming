@@ -9,10 +9,20 @@ interface SectionHeadingProps {
   aside?: ReactNode;
   className?: string;
   titleClassName?: string;
+  /** Overrides the description colour, for example on a navy band. */
+  descriptionClassName?: string;
 }
 
 /** Section title and description on the left, with optional controls on the right. */
-export function SectionHeading({ id, title, description, aside, className, titleClassName }: SectionHeadingProps) {
+export function SectionHeading({
+  id,
+  title,
+  description,
+  aside,
+  className,
+  titleClassName,
+  descriptionClassName = "text-auh-olive",
+}: SectionHeadingProps) {
   return (
     <div className={cn("mb-6 flex flex-wrap items-end justify-between gap-3", className)}>
       <div>
@@ -22,7 +32,7 @@ export function SectionHeading({ id, title, description, aside, className, title
         >
           {title}
         </h2>
-        {description ? <p className="mt-2 text-base text-auh-olive">{description}</p> : null}
+        {description ? <p className={cn("mt-2 text-base", descriptionClassName)}>{description}</p> : null}
       </div>
       {aside}
     </div>

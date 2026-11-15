@@ -8,7 +8,7 @@ import { Container } from "@/components/ui/container";
 import { buildPlayoffBrackets } from "@/lib/league/bracket";
 import { getLeagueData } from "@/lib/league/data";
 import { buildGroupRecords } from "@/lib/league/group-stage";
-import { getSeededTeams, resolvePlayoffs } from "@/lib/league/playoffs";
+import { getChampion, getSeasonStatus, getSeededTeams, resolvePlayoffs } from "@/lib/league/playoffs";
 import { SEASON } from "@/lib/league/sample-data";
 import { buildStandings, FORMAT_RULES } from "@/lib/league/standings";
 
@@ -31,7 +31,7 @@ export default async function LeaguePage() {
 
   return (
     <>
-      <LeagueHero />
+      <LeagueHero status={getSeasonStatus(isGenerated, getChampion(brackets) !== undefined)} />
       <Container>
         <LeagueViewTabs
           leaderboard={

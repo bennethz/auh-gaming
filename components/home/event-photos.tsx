@@ -10,7 +10,7 @@ const PHOTO_SLOT_COUNT = 6;
 export function EventPhotos() {
   return (
     <section aria-labelledby="event-photos-title" data-testid="event-photos">
-      <Container className="pt-[72px] pb-6">
+      <Container className="reveal pt-[72px] pb-6">
         <SectionHeading id="event-photos-title" title="From past events" />
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3.5">
           {Array.from({ length: PHOTO_SLOT_COUNT }, (_, index) => (

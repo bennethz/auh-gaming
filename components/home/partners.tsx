@@ -4,14 +4,14 @@ import { SectionHeading } from "@/components/ui/section-heading";
 const PARTNER_SLOT_COUNT = 4;
 
 /**
- * Partner and sponsor logos on light cards.
+ * Partner and sponsor logos on light cards, on a navy band.
  * TODO: Replace the slots with partner and sponsor names, logos and links once supplied.
  */
 export function Partners() {
   return (
-    <section aria-labelledby="partners-title" data-testid="partners">
-      <Container className="pt-[72px] pb-6">
-        <SectionHeading id="partners-title" title="Partners and Sponsors" />
+    <section aria-labelledby="partners-title" className="mt-[72px] bg-auh-ink" data-testid="partners">
+      <Container className="reveal py-16 md:py-20">
+        <SectionHeading id="partners-title" title="Partners and Sponsors" titleClassName="text-auh-yellow" />
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3.5">
           {Array.from({ length: PARTNER_SLOT_COUNT }, (_, index) => (
             <li

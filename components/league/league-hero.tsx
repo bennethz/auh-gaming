@@ -1,18 +1,19 @@
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Badge, Tag } from "@/components/ui/tag";
+import type { SeasonStatus } from "@/lib/league/playoffs";
 import { SEASON } from "@/lib/league/sample-data";
 import { FORMAT_RULES } from "@/lib/league/standings";
 
 /** League page header with season status and the organizer entry point. */
-export function LeagueHero() {
+export function LeagueHero({ status }: { status: SeasonStatus }) {
   return (
     <section aria-labelledby="league-title" className="border-b-6 border-auh-ink" data-testid="league-hero">
       <Container className="flex flex-wrap items-end justify-between gap-6 pt-12 pb-9">
         <div className="flex flex-col gap-3.5">
           <div className="flex flex-wrap items-center gap-3">
             <Tag>Season {SEASON.number}</Tag>
-            <Badge data-testid="league-status-badge">Group stage live</Badge>
+            <Badge data-testid="league-status-badge">{status}</Badge>
           </div>
           <h1
             id="league-title"

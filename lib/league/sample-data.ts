@@ -4,7 +4,13 @@
  * Values in square brackets are content the community still needs to provide.
  */
 import type { PointDeductionMap } from "./standings";
-import type { GroupResult, Match, PlayoffFormat, SeriesScore, Team } from "./types";
+import type {
+  GroupResult,
+  Match,
+  PlayoffFormat,
+  SeriesScore,
+  Team,
+} from "./types";
 
 /** Top 2 advance to the upper semifinals, 3rd to 10th to the upper bracket, 11th to 18th to the lower bracket. */
 const PLAYOFF_FORMAT: PlayoffFormat = "2-advanced-8-upper-8-lower";
@@ -17,7 +23,13 @@ export const SEASON = {
   playoffFormat: PLAYOFF_FORMAT,
 } as const;
 
-export const DISCORD_INVITE_URL = "https://discord.com";
+export const DISCORD_INVITE_URL = "https://discord.gg/pR3ETEjHG";
+
+/**
+ * The community's Facebook page. The main way to join: players message the page to sign up.
+ * TODO: Replace with the real page URL.
+ */
+export const FACEBOOK_PAGE_URL = "https://www.facebook.com/AUHGamingCommunity";
 
 export const COMMUNITY = {
   tagline: "Esports Team and Gaming Community in the MENA Region",
@@ -67,7 +79,10 @@ function getSampleScore(indexA: number, indexB: number): SeriesScore {
  * Builds sample results for the first rounds of a round robin (circle method),
  * so every team has played the same number of series.
  */
-function buildSampleGroupResults(teams: Team[], roundsPlayed: number): GroupResult[] {
+function buildSampleGroupResults(
+  teams: Team[],
+  roundsPlayed: number,
+): GroupResult[] {
   const [fixedTeam, ...rotatingTeams] = teams;
   const results: GroupResult[] = [];
 
@@ -88,7 +103,10 @@ function buildSampleGroupResults(teams: Team[], roundsPlayed: number): GroupResu
 }
 
 /** Sample group stage series results. Will come from the database. */
-export const GROUP_RESULTS: GroupResult[] = buildSampleGroupResults(TEAMS, SAMPLE_ROUNDS_PLAYED);
+export const GROUP_RESULTS: GroupResult[] = buildSampleGroupResults(
+  TEAMS,
+  SAMPLE_ROUNDS_PLAYED,
+);
 
 /** Sample point deductions. Will come from the database. */
 export const POINT_DEDUCTIONS: PointDeductionMap = {
@@ -151,4 +169,3 @@ export const MATCHES: Match[] = [
     startsAt: "2026-11-15T20:00:00+04:00",
   },
 ];
-

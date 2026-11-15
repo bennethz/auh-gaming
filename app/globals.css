@@ -18,7 +18,6 @@
   --radius-*: initial;
 
   --animate-drop: drop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-
   @keyframes drop {
     from {
       transform: translateY(-30px) scale(0.94);
@@ -87,5 +86,30 @@
       animation: none !important;
       transition: none !important;
     }
+  }
+}
+
+/*
+ * Slides and fades an element in as it scrolls into view. Uses scroll-driven animations where supported;
+ * elsewhere (and with reduced motion) the element simply shows.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(48px) skewY(2deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

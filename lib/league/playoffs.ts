@@ -156,6 +156,29 @@ export function findResolvedMatch(brackets: ResolvedBracket[], matchId: string):
 }
 
 /**
+ * The season champion: the grand final ("GF") winner, once its result is entered.
+ * @param brackets - Resolved brackets.
+ */
+export function getChampion(brackets: ResolvedBracket[]): Team | undefined {
+  const grandFinal = findResolvedMatch(brackets, "GF");
+  if (grandFinal?.winnerSide === "A") return grandFinal.slotA.team;
+  if (grandFinal?.winnerSide === "B") return grandFinal.slotB.team;
+  return undefined;
+}
+
+export type SeasonStatus = "Group stage live" | "Playoffs live" | "Season complete";
+
+/**
+ * The season's status label, shown as a badge on the home and league pages.
+ * @param isPlayoffsLive - Whether the organizers have generated the playoffs.
+ * @param hasChampion - Whether the grand final has a result.
+ */
+export function getSeasonStatus(isPlayoffsLive: boolean, hasChampion: boolean): SeasonStatus {
+  if (hasChampion) return "Season complete";
+  return isPlayoffsLive ? "Playoffs live" : "Group stage live";
+}
+
+/**
  * Saves one match's entry. If the match's winner changes, scores of every later match that the
  * winner or loser feeds into are cleared, because those matches now involve different teams.
  * Dates are kept.
