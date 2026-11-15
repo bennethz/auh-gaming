@@ -57,7 +57,8 @@ export function PlayoffBrackets({ brackets, formatSummary, isGenerated }: Playof
   );
 }
 
-function BracketMatchCard({ match }: { match: ResolvedMatch }) {
+/** One playoff match: both slots with scores, plus the match id and date. */
+export function BracketMatchCard({ match }: { match: ResolvedMatch }) {
   return (
     <div className="notch bg-auh-ink text-sm text-auh-cream" data-testid={`bracket-match-${match.id}`}>
       <SlotRow slot={match.slotA} score={match.scoreA} side="A" winnerSide={match.winnerSide} />

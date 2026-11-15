@@ -194,3 +194,26 @@ export function savePlayoffEntry(
   clearDependents(matchId);
   return next;
 }
+
+export interface UpcomingPlayoffGroup {
+  /** Bracket name: "Upper bracket", "Lower bracket" or "Grand final". */
+  name: string;
+  matches: ResolvedMatch[];
+}
+
+/**
+ * Playoff matches that are ready to play: both teams are known and no final score is entered.
+ * Grouped by bracket in bracket order, and sorted by match date within each group (undated last).
+ * Brackets with nothing upcoming are left out.
+ * @param brackets - Resolved brackets.
+ */
+export function getUpcomingPlayoffMatches(brackets: ResolvedBracket[]): UpcomingPlayoffGroup[] {
+  return brackets.flatMap((bracket) => {
+    const matches = bracket.rounds
+      .flatMap((round) => round.matches)
+      .filter((resolvedMatch) => resolvedMatch.slotA.team && resolvedMatch.slotB.team && !resolvedMatch.winnerSide)
+      // Stable sort keeps bracket order for matches on the same day or without a date.
+      .sort((a, b) => (a.matchDate ?? "9999-12-31").localeCompare(b.matchDate ?? "9999-12-31"));
+    return matches.length > 0 ? [{ name: bracket.name, matches }] : [];
+  });
+}
