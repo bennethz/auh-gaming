@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { getSupabaseReadClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { toGroupResultMap, type GroupResultMap } from "./group-stage";
-import type { PlayoffEntryMap, PlayoffMatchEntry } from "./playoffs";
+import type { PlayoffEntryMap, PlayoffMatchEntry, PlayoffSeeds } from "./playoffs";
 import { GROUP_RESULTS, MATCHES, POINT_DEDUCTIONS, TEAMS } from "./sample-data";
 import type { PointDeductionMap, TiebreakOrder } from "./standings";
 import type { Match, MatchStage, MatchStatus, SeriesScore, Team } from "./types";
@@ -18,6 +18,8 @@ export interface LeagueData {
   tiebreakOrder: TiebreakOrder;
   matches: Match[];
   playoffEntries: PlayoffEntryMap;
+  /** Seeds frozen when the playoffs were generated. Empty until then. */
+  playoffSeeds: PlayoffSeeds;
   /** When an organizer last saved, as an ISO 8601 date-time. Undefined until the first save. */
   standingsUpdatedAt?: string;
 }
@@ -40,18 +42,28 @@ export async function getLeagueData(): Promise<LeagueData> {
       tiebreakOrder: [],
       matches: MATCHES,
       playoffEntries: {},
+      playoffSeeds: [],
     };
   }
 
   const supabase = getSupabaseReadClient();
-  const [teamsResult, resultsResult, deductionsResult, tiebreakResult, matchesResult, playoffResult, metaResult] =
-    await Promise.all([
+  const [
+    teamsResult,
+    resultsResult,
+    deductionsResult,
+    tiebreakResult,
+    matchesResult,
+    playoffResult,
+    seedsResult,
+    metaResult,
+  ] = await Promise.all([
       supabase.from("teams").select("id, name, captain").order("sort_order"),
       supabase.from("group_results").select("team_a_id, team_b_id, score"),
       supabase.from("point_deductions").select("team_id, points"),
       supabase.from("tiebreak_order").select("team_id").order("position"),
       supabase.from("matches").select("*").order("starts_at"),
       supabase.from("playoff_entries").select("match_id, score_a, score_b, match_date"),
+      supabase.from("playoff_seeds").select("team_id").order("seed"),
       supabase.from("league_meta").select("standings_updated_at").maybeSingle(),
     ]);
 
@@ -65,6 +77,11 @@ export async function getLeagueData(): Promise<LeagueData> {
     metaResult,
   ]) {
     if (error) throw new Error(`Supabase query failed: ${error.message}`);
+  }
+  // playoff_seeds comes from migration 0004. Until it's run, treat the playoffs as not generated
+  // instead of taking the whole site down.
+  if (seedsResult.error && !isMissingTableError(seedsResult.error)) {
+    throw new Error(`Supabase query failed: ${seedsResult.error.message}`);
   }
 
   return {
@@ -96,8 +113,17 @@ export async function getLeagueData(): Promise<LeagueData> {
         },
       ]),
     ),
+    playoffSeeds: (seedsResult.data ?? []).map((row) => row.team_id),
     standingsUpdatedAt: metaResult.data?.standings_updated_at ?? undefined,
   };
+}
+
+/**
+ * True when a Supabase error means the table doesn't exist yet (its migration hasn't been run).
+ * PGRST205: PostgREST can't find the table. 42P01: Postgres "relation does not exist".
+ */
+export function isMissingTableError(error: { code?: string }): boolean {
+  return error.code === "PGRST205" || error.code === "42P01";
 }
 
 /**

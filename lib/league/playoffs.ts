@@ -14,6 +14,12 @@ export interface PlayoffMatchEntry {
 /** Playoff entries keyed by bracket match id ("U1", "L3", "GF"). */
 export type PlayoffEntryMap = Readonly<Record<string, PlayoffMatchEntry>>;
 
+/**
+ * Playoff seeds frozen when the organizers generate the playoffs: team ids, index 0 is seed 1.
+ * Empty until the playoffs are generated.
+ */
+export type PlayoffSeeds = readonly string[];
+
 export type SlotSide = "A" | "B";
 
 export interface ResolvedSlot {
@@ -21,6 +27,18 @@ export interface ResolvedSlot {
   placeholder: string;
   /** The team in this slot, once known. */
   team?: Team;
+  /** The team's playoff seed, carried along as it moves through the bracket. */
+  seed?: number;
+}
+
+/**
+ * Turns frozen seeds into teams in seed order. Ids that no longer match a team are skipped.
+ * @param seeds - Team ids, index 0 is seed 1.
+ * @param teams - All teams in the season.
+ */
+export function getSeededTeams(seeds: PlayoffSeeds, teams: Team[]): Team[] {
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  return seeds.flatMap((teamId) => teamsById.get(teamId) ?? []);
 }
 
 export interface ResolvedMatch extends PlayoffMatchEntry {
@@ -82,14 +100,18 @@ export function getWinnerSide(bestOf: BestOf, entry: PlayoffMatchEntry | undefin
  */
 export function resolvePlayoffs(brackets: Bracket[], seededTeams: Team[], entries: PlayoffEntryMap): ResolvedBracket[] {
   const outcomes = new Map<string, { winner?: Team; loser?: Team }>();
+  const seedByTeamId = new Map(seededTeams.map((team, index) => [team.id, index + 1]));
+
+  const withTeam = (placeholder: string, team: Team | undefined): ResolvedSlot =>
+    team ? { placeholder, team, seed: seedByTeamId.get(team.id) } : { placeholder };
 
   const resolveSlot = (placeholder: string): ResolvedSlot => {
     const slotMatch = SLOT_PATTERN.exec(placeholder);
     if (!slotMatch) return { placeholder };
     const [, kind, reference] = slotMatch;
-    if (kind === "Seed") return { placeholder, team: seededTeams[Number(reference) - 1] };
+    if (kind === "Seed") return withTeam(placeholder, seededTeams[Number(reference) - 1]);
     const outcome = outcomes.get(reference);
-    return { placeholder, team: kind === "Winner" ? outcome?.winner : outcome?.loser };
+    return withTeam(placeholder, kind === "Winner" ? outcome?.winner : outcome?.loser);
   };
 
   return brackets.map((bracket) => ({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { SeedNumber } from "@/components/league/seed-number";
 import { cn } from "@/lib/cn";
 import { formatCalendarDate } from "@/lib/format-date";
 import type { PlayoffMatchEntry, ResolvedBracket, ResolvedMatch, ResolvedSlot, SlotSide } from "@/lib/league/playoffs";
@@ -71,7 +72,7 @@ function MatchCard({ match, onOpen }: { match: ResolvedMatch; onOpen: () => void
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`Edit ${match.id}: ${match.slotA.team?.name ?? match.slotA.placeholder} vs ${match.slotB.team?.name ?? match.slotB.placeholder}`}
+      aria-label={`Edit ${match.id}: ${slotLabel(match.slotA)} vs ${slotLabel(match.slotB)}`}
       className="notch focus-notch block w-full bg-auh-ink text-left text-sm text-auh-cream transition-colors hover:bg-auh-ink-soft"
       data-testid={`playoff-match-${match.id}`}
     >
@@ -83,6 +84,11 @@ function MatchCard({ match, onOpen }: { match: ResolvedMatch; onOpen: () => void
       </span>
     </button>
   );
+}
+
+function slotLabel(slot: ResolvedSlot): string {
+  if (!slot.team) return slot.placeholder;
+  return slot.seed === undefined ? slot.team.name : `#${slot.seed} ${slot.team.name}`;
 }
 
 function SlotRow({
@@ -110,7 +116,10 @@ function SlotRow({
       <span className="min-w-0 flex-1">
         {slot.team ? (
           <>
-            <span className={cn("block truncate font-semibold", isWinner && "text-auh-yellow")}>{slot.team.name}</span>
+            <span className="flex items-baseline gap-1.5">
+              <SeedNumber seed={slot.seed} />
+              <span className={cn("truncate font-semibold", isWinner && "text-auh-yellow")}>{slot.team.name}</span>
+            </span>
             <span className="block truncate text-xs text-auh-cream-dim">Captain: {slot.team.captain}</span>
           </>
         ) : (

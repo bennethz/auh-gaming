@@ -14,7 +14,14 @@ import {
   type GroupResultMap,
   setSeriesScore,
 } from "@/lib/league/group-stage";
-import { type PlayoffEntryMap, type PlayoffMatchEntry, resolvePlayoffs, savePlayoffEntry } from "@/lib/league/playoffs";
+import {
+  getSeededTeams,
+  type PlayoffEntryMap,
+  type PlayoffMatchEntry,
+  type PlayoffSeeds,
+  resolvePlayoffs,
+  savePlayoffEntry,
+} from "@/lib/league/playoffs";
 import {
   buildStandings,
   FORMAT_RULES,
@@ -49,6 +56,8 @@ interface ManageLeagueProps {
   initialDeductions: PointDeductionMap;
   /** Manual order for teams level on points, as stored. */
   initialTiebreakOrder: TiebreakOrder;
+  /** Seeds frozen when the playoffs were last generated, as stored. Empty if never generated. */
+  initialPlayoffSeeds: PlayoffSeeds;
 }
 
 /**
@@ -63,18 +72,21 @@ export function ManageLeague({
   initialPlayoffEntries,
   initialDeductions,
   initialTiebreakOrder,
+  initialPlayoffSeeds,
 }: ManageLeagueProps) {
   const [view, setView] = useState<ManageView>("group-stage");
   const [results, setResults] = useState<GroupResultMap>(initialResults);
   const [playoffEntries, setPlayoffEntries] = useState<PlayoffEntryMap>(initialPlayoffEntries);
   const [deductions, setDeductions] = useState<PointDeductionMap>(initialDeductions);
   const [tiebreakOrder, setTiebreakOrder] = useState<TiebreakOrder>(initialTiebreakOrder);
+  const [playoffSeeds, setPlayoffSeeds] = useState<PlayoffSeeds>(initialPlayoffSeeds);
   // What's stored: the props at first, then whatever was last saved successfully.
   const [saved, setSaved] = useState({
     results: initialResults,
     playoffEntries: initialPlayoffEntries,
     deductions: initialDeductions,
     tiebreakOrder: initialTiebreakOrder,
+    playoffSeeds: initialPlayoffSeeds,
   });
   const [isSaving, startSaving] = useTransition();
   const { message, showToast } = useToast();
@@ -87,23 +99,28 @@ export function ManageLeague({
     results !== saved.results ||
     playoffEntries !== saved.playoffEntries ||
     deductions !== saved.deductions ||
-    tiebreakOrder !== saved.tiebreakOrder;
+    tiebreakOrder !== saved.tiebreakOrder ||
+    playoffSeeds !== saved.playoffSeeds;
 
   const standings = useMemo(
     () => buildStandings(buildGroupRecords(teams, results), teams, playoffFormat, deductions, tiebreakOrder),
     [teams, results, playoffFormat, deductions, tiebreakOrder],
   );
   const bracketStructure = useMemo(() => buildPlayoffBrackets(playoffFormat), [playoffFormat]);
-  // Seeds follow the group stage standings; winners and losers follow the entered playoff scores.
-  const resolvedBrackets = useMemo(
-    () =>
-      resolvePlayoffs(
-        bracketStructure,
-        standings.map((row) => row.team),
-        playoffEntries,
-      ),
-    [standings, bracketStructure, playoffEntries],
+  const isGenerated = playoffSeeds.length > 0;
+  // Once generated, seeds stay frozen; before that the bracket previews the live standings.
+  // Winners and losers follow the entered playoff scores.
+  const seededTeams = useMemo(
+    () => (isGenerated ? getSeededTeams(playoffSeeds, teams) : standings.map((row) => row.team)),
+    [isGenerated, playoffSeeds, teams, standings],
   );
+  const resolvedBrackets = useMemo(
+    () => resolvePlayoffs(bracketStructure, seededTeams, playoffEntries),
+    [bracketStructure, seededTeams, playoffEntries],
+  );
+  /** True when the live standings no longer match the frozen seeds. */
+  const standingsChangedSinceGenerate =
+    isGenerated && standings.some((row, index) => playoffSeeds[index] !== row.team.id);
 
   const handleSavePlayoffMatch = (matchId: string, entry: PlayoffMatchEntry) => {
     setPlayoffEntries((current) => savePlayoffEntry(bracketStructure, current, matchId, entry));
@@ -114,9 +131,13 @@ export function ManageLeague({
     (entry) => entry.scoreA !== undefined || entry.scoreB !== undefined || entry.matchDate,
   ).length;
 
-  /** Clears every playoff score and date. Seeds come from the current group stage table. Saved with Save changes. */
+  /**
+   * Clears every playoff score and date and freezes the seeds from the current group stage table,
+   * even if some series are still missing. Saved with Save changes.
+   */
   const handleGeneratePlayoffs = () => {
     setPlayoffEntries({});
+    setPlayoffSeeds(standings.map((row) => row.team.id));
     generateDialogRef.current?.close();
     setView("playoffs");
     showToast("Playoffs generated from the current standings. Save changes to publish.");
@@ -127,16 +148,17 @@ export function ManageLeague({
     setPlayoffEntries(saved.playoffEntries);
     setDeductions(saved.deductions);
     setTiebreakOrder(saved.tiebreakOrder);
+    setPlayoffSeeds(saved.playoffSeeds);
   };
 
   const handleSave = () => {
     startSaving(async () => {
-      const result = await saveLeague({ groupResults: results, deductions, tiebreakOrder, playoffEntries });
+      const result = await saveLeague({ groupResults: results, deductions, tiebreakOrder, playoffEntries, playoffSeeds });
       if (!result.ok) {
         showToast(`Saving failed: ${result.error}`);
         return;
       }
-      setSaved({ results, playoffEntries, deductions, tiebreakOrder });
+      setSaved({ results, playoffEntries, deductions, tiebreakOrder, playoffSeeds });
       showToast("Saved. Public pages are updated.");
     });
   };
@@ -227,11 +249,20 @@ export function ManageLeague({
             Playoffs
           </h2>
           <p className="mt-1.5 text-[15px] text-auh-olive">
-            Double elimination. {FORMAT_RULES[playoffFormat].summary} Seeds follow the group stage table.
+            Double elimination. {FORMAT_RULES[playoffFormat].summary}{" "}
+            {isGenerated
+              ? "Seeds were locked from the group stage table when the playoffs were generated."
+              : "Preview: seeds follow the live group stage table until you generate the playoffs."}
           </p>
           <p className="mt-1 text-[13px] text-auh-olive">
             Click a match to set its score and date. Winners move on automatically.
           </p>
+          {standingsChangedSinceGenerate ? (
+            <p className="mt-1 text-[13px] text-auh-orange" data-testid="seeds-locked-note">
+              The group stage table has changed since the playoffs were generated. Seeds stay as they are; generate
+              again to re-seed (this clears playoff scores).
+            </p>
+          ) : null}
         </div>
         <PlayoffEditor brackets={resolvedBrackets} onSave={handleSavePlayoffMatch} />
       </section>
@@ -250,9 +281,11 @@ export function ManageLeague({
             : ""}{" "}
           and seeds the bracket from the current group stage table.
         </p>
+        <p>Seeds are locked from the current rankings and won’t move if group stage results change later.</p>
         {seriesLeft > 0 ? (
           <p className="text-auh-orange" data-testid="generate-playoffs-warning">
-            {seriesLeft} group stage {seriesLeft === 1 ? "series is" : "series are"} still missing, so seeds may change.
+            {seriesLeft} group stage {seriesLeft === 1 ? "series is" : "series are"} still missing. The playoffs will
+            use the rankings as they stand now.
           </p>
         ) : null}
         <p className="text-[13px] text-auh-cream-dim">Nothing is published until you save changes.</p>

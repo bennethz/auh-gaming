@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, type Ref, useState } from "react";
+import { SeedNumber } from "@/components/league/seed-number";
 import { Button } from "@/components/ui/button";
 import { Field, INPUT_CLASS_NAME } from "@/components/ui/form-panel";
 import { cn } from "@/lib/cn";
@@ -146,7 +147,10 @@ function SlotCard({ slot, testId }: { slot: ResolvedSlot; testId: string }) {
     <div className="flex min-w-0 flex-col gap-1 bg-auh-ink-soft p-3" data-testid={testId}>
       {slot.team ? (
         <>
-          <span className="truncate font-semibold">{slot.team.name}</span>
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <SeedNumber seed={slot.seed} />
+            <span className="truncate font-semibold">{slot.team.name}</span>
+          </span>
           <span className="truncate text-[13px] text-auh-cream-dim">Captain: {slot.team.captain}</span>
         </>
       ) : (

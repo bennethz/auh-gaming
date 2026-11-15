@@ -8,6 +8,7 @@ import { Container } from "@/components/ui/container";
 import { buildPlayoffBrackets } from "@/lib/league/bracket";
 import { getLeagueData } from "@/lib/league/data";
 import { buildGroupRecords } from "@/lib/league/group-stage";
+import { getSeededTeams, resolvePlayoffs } from "@/lib/league/playoffs";
 import { SEASON } from "@/lib/league/sample-data";
 import { buildStandings, FORMAT_RULES } from "@/lib/league/standings";
 
@@ -17,10 +18,16 @@ export const metadata: Metadata = {
 };
 
 export default async function LeaguePage() {
-  const { teams, groupResults, deductions, tiebreakOrder } = await getLeagueData();
+  const { teams, groupResults, deductions, tiebreakOrder, playoffEntries, playoffSeeds } = await getLeagueData();
   const format = SEASON.playoffFormat;
   const standings = buildStandings(buildGroupRecords(teams, groupResults), teams, format, deductions, tiebreakOrder);
-  const brackets = buildPlayoffBrackets(format);
+  // Teams appear only once the organizers generate the playoffs and freeze the seeds.
+  const isGenerated = playoffSeeds.length > 0;
+  const brackets = resolvePlayoffs(
+    buildPlayoffBrackets(format),
+    isGenerated ? getSeededTeams(playoffSeeds, teams) : [],
+    isGenerated ? playoffEntries : {},
+  );
 
   return (
     <>
@@ -33,7 +40,13 @@ export default async function LeaguePage() {
               <GroupResults teams={teams} results={groupResults} />
             </>
           }
-          playoffs={<PlayoffBrackets brackets={brackets} formatSummary={FORMAT_RULES[format].summary} />}
+          playoffs={
+            <PlayoffBrackets
+              brackets={brackets}
+              formatSummary={FORMAT_RULES[format].summary}
+              isGenerated={isGenerated}
+            />
+          }
         />
       </Container>
     </>

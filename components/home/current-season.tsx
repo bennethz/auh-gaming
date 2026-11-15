@@ -26,7 +26,11 @@ export async function CurrentSeason() {
           id="current-season-title"
           title={`${SEASON.leagueName} Season ${SEASON.number}`}
           description={`${SEASON.teamCount} teams battling it out in our community ${SEASON.game} league.`}
-          aside={<Badge data-testid="season-status-badge">Group stage live</Badge>}
+          aside={
+            <Badge data-testid="season-status-badge">
+              {leagueData.playoffSeeds.length > 0 ? "Playoffs live" : "Group stage live"}
+            </Badge>
+          }
         />
 
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
