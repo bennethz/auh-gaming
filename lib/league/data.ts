@@ -4,7 +4,7 @@ import { getSupabaseReadClient, isSupabaseConfigured } from "@/lib/supabase/serv
 import { toGroupResultMap, type GroupResultMap } from "./group-stage";
 import type { PlayoffEntryMap, PlayoffMatchEntry } from "./playoffs";
 import { GROUP_RESULTS, MATCHES, POINT_DEDUCTIONS, TEAMS } from "./sample-data";
-import type { PointDeductionMap } from "./standings";
+import type { PointDeductionMap, TiebreakOrder } from "./standings";
 import type { Match, MatchStage, MatchStatus, SeriesScore, Team } from "./types";
 
 /** Cache tag for all league data. Server Actions call `updateTag(LEAGUE_CACHE_TAG)` after writes. */
@@ -14,6 +14,8 @@ export interface LeagueData {
   teams: Team[];
   groupResults: GroupResultMap;
   deductions: PointDeductionMap;
+  /** Manual order for teams level on points, highest first. Empty until an organizer sets it. */
+  tiebreakOrder: TiebreakOrder;
   matches: Match[];
   playoffEntries: PlayoffEntryMap;
   /** When an organizer last saved, as an ISO 8601 date-time. Undefined until the first save. */
@@ -35,22 +37,33 @@ export async function getLeagueData(): Promise<LeagueData> {
       teams: TEAMS,
       groupResults: toGroupResultMap(GROUP_RESULTS),
       deductions: POINT_DEDUCTIONS,
+      tiebreakOrder: [],
       matches: MATCHES,
       playoffEntries: {},
     };
   }
 
   const supabase = getSupabaseReadClient();
-  const [teamsResult, resultsResult, deductionsResult, matchesResult, playoffResult, metaResult] = await Promise.all([
-    supabase.from("teams").select("id, name, captain").order("sort_order"),
-    supabase.from("group_results").select("team_a_id, team_b_id, score"),
-    supabase.from("point_deductions").select("team_id, points"),
-    supabase.from("matches").select("*").order("starts_at"),
-    supabase.from("playoff_entries").select("match_id, score_a, score_b, match_date"),
-    supabase.from("league_meta").select("standings_updated_at").maybeSingle(),
-  ]);
+  const [teamsResult, resultsResult, deductionsResult, tiebreakResult, matchesResult, playoffResult, metaResult] =
+    await Promise.all([
+      supabase.from("teams").select("id, name, captain").order("sort_order"),
+      supabase.from("group_results").select("team_a_id, team_b_id, score"),
+      supabase.from("point_deductions").select("team_id, points"),
+      supabase.from("tiebreak_order").select("team_id").order("position"),
+      supabase.from("matches").select("*").order("starts_at"),
+      supabase.from("playoff_entries").select("match_id, score_a, score_b, match_date"),
+      supabase.from("league_meta").select("standings_updated_at").maybeSingle(),
+    ]);
 
-  for (const { error } of [teamsResult, resultsResult, deductionsResult, matchesResult, playoffResult, metaResult]) {
+  for (const { error } of [
+    teamsResult,
+    resultsResult,
+    deductionsResult,
+    tiebreakResult,
+    matchesResult,
+    playoffResult,
+    metaResult,
+  ]) {
     if (error) throw new Error(`Supabase query failed: ${error.message}`);
   }
 
@@ -62,6 +75,7 @@ export async function getLeagueData(): Promise<LeagueData> {
     deductions: Object.fromEntries(
       (deductionsResult.data ?? []).map((row) => [row.team_id, { points: row.points }]),
     ),
+    tiebreakOrder: (tiebreakResult.data ?? []).map((row) => row.team_id),
     matches: (matchesResult.data ?? []).map((row) => ({
       id: row.id,
       stage: row.stage as MatchStage,

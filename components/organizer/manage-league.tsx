@@ -22,10 +22,13 @@ import {
   POINTS_PER_DEFAULT_WIN,
   POINTS_PER_DRAW,
   POINTS_PER_WIN,
+  swapTiebreakOrder,
+  type TiebreakOrder,
 } from "@/lib/league/standings";
 import type { PlayoffFormat, Team } from "@/lib/league/types";
 import { GroupStageMatrix } from "./group-stage-matrix";
 import { PlayoffEditor } from "./playoff-editor";
+import { TiebreakPanel } from "./tiebreak-panel";
 
 type ManageView = "group-stage" | "playoffs";
 
@@ -44,6 +47,8 @@ interface ManageLeagueProps {
   initialPlayoffEntries: PlayoffEntryMap;
   /** Point deductions as stored, keyed by team id. */
   initialDeductions: PointDeductionMap;
+  /** Manual order for teams level on points, as stored. */
+  initialTiebreakOrder: TiebreakOrder;
 }
 
 /**
@@ -57,16 +62,19 @@ export function ManageLeague({
   initialResults,
   initialPlayoffEntries,
   initialDeductions,
+  initialTiebreakOrder,
 }: ManageLeagueProps) {
   const [view, setView] = useState<ManageView>("group-stage");
   const [results, setResults] = useState<GroupResultMap>(initialResults);
   const [playoffEntries, setPlayoffEntries] = useState<PlayoffEntryMap>(initialPlayoffEntries);
   const [deductions, setDeductions] = useState<PointDeductionMap>(initialDeductions);
+  const [tiebreakOrder, setTiebreakOrder] = useState<TiebreakOrder>(initialTiebreakOrder);
   // What's stored: the props at first, then whatever was last saved successfully.
   const [saved, setSaved] = useState({
     results: initialResults,
     playoffEntries: initialPlayoffEntries,
     deductions: initialDeductions,
+    tiebreakOrder: initialTiebreakOrder,
   });
   const [isSaving, startSaving] = useTransition();
   const { message, showToast } = useToast();
@@ -76,16 +84,26 @@ export function ManageLeague({
   const playedSeries = getPlayedSeriesCount(results);
   const seriesLeft = totalSeries - playedSeries;
   const hasChanges =
-    results !== saved.results || playoffEntries !== saved.playoffEntries || deductions !== saved.deductions;
+    results !== saved.results ||
+    playoffEntries !== saved.playoffEntries ||
+    deductions !== saved.deductions ||
+    tiebreakOrder !== saved.tiebreakOrder;
 
+  const standings = useMemo(
+    () => buildStandings(buildGroupRecords(teams, results), teams, playoffFormat, deductions, tiebreakOrder),
+    [teams, results, playoffFormat, deductions, tiebreakOrder],
+  );
   const bracketStructure = useMemo(() => buildPlayoffBrackets(playoffFormat), [playoffFormat]);
-  // Seeds follow the group stage grid; winners and losers follow the entered playoff scores.
-  const resolvedBrackets = useMemo(() => {
-    const seededTeams = buildStandings(buildGroupRecords(teams, results), teams, playoffFormat, deductions).map(
-      (row) => row.team,
-    );
-    return resolvePlayoffs(bracketStructure, seededTeams, playoffEntries);
-  }, [teams, results, playoffFormat, deductions, bracketStructure, playoffEntries]);
+  // Seeds follow the group stage standings; winners and losers follow the entered playoff scores.
+  const resolvedBrackets = useMemo(
+    () =>
+      resolvePlayoffs(
+        bracketStructure,
+        standings.map((row) => row.team),
+        playoffEntries,
+      ),
+    [standings, bracketStructure, playoffEntries],
+  );
 
   const handleSavePlayoffMatch = (matchId: string, entry: PlayoffMatchEntry) => {
     setPlayoffEntries((current) => savePlayoffEntry(bracketStructure, current, matchId, entry));
@@ -108,16 +126,17 @@ export function ManageLeague({
     setResults(saved.results);
     setPlayoffEntries(saved.playoffEntries);
     setDeductions(saved.deductions);
+    setTiebreakOrder(saved.tiebreakOrder);
   };
 
   const handleSave = () => {
     startSaving(async () => {
-      const result = await saveLeague({ groupResults: results, deductions, playoffEntries });
+      const result = await saveLeague({ groupResults: results, deductions, tiebreakOrder, playoffEntries });
       if (!result.ok) {
         showToast(`Saving failed: ${result.error}`);
         return;
       }
-      setSaved({ results, playoffEntries, deductions });
+      setSaved({ results, playoffEntries, deductions, tiebreakOrder });
       showToast("Saved. Public pages are updated.");
     });
   };
@@ -191,6 +210,13 @@ export function ManageLeague({
               else delete next[teamId];
               return next;
             })
+          }
+        />
+
+        <TiebreakPanel
+          rows={standings}
+          onSwap={(teamId, neighbourId) =>
+            setTiebreakOrder((current) => swapTiebreakOrder(current, teams, teamId, neighbourId))
           }
         />
       </section>

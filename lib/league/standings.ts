@@ -11,6 +11,46 @@ export const POINTS_PER_DRAW = 1;
 export type PointDeductionMap = Readonly<Record<string, PointDeduction>>;
 
 /**
+ * Organizer-set order for breaking ties on points: team ids, highest first.
+ * Only compares teams on equal points. Teams missing from the list rank after listed ones, in team order.
+ */
+export type TiebreakOrder = readonly string[];
+
+/**
+ * Moves a team one place up or down among the teams it's tied with, by swapping it with the
+ * neighbouring row in the standings. Points always come first, so this only changes order within a tie.
+ * @param order - Current tiebreak order. May be empty or partial.
+ * @param teams - All teams, used to fill in teams missing from `order`.
+ * @param teamId - The team to move.
+ * @param neighbourId - The tied team directly above or below it in the standings.
+ * @returns A new, complete tiebreak order.
+ */
+export function swapTiebreakOrder(order: TiebreakOrder, teams: Team[], teamId: string, neighbourId: string): string[] {
+  const listed = new Set(order);
+  const full = [...order, ...teams.map((team) => team.id).filter((id) => !listed.has(id))];
+  const teamIndex = full.indexOf(teamId);
+  const neighbourIndex = full.indexOf(neighbourId);
+  if (teamIndex === -1 || neighbourIndex === -1) return full;
+  full[teamIndex] = neighbourId;
+  full[neighbourIndex] = teamId;
+  return full;
+}
+
+/**
+ * Groups standings rows that are level on points, in rank order. Only groups of two or more.
+ * @param rows - Standings sorted by rank.
+ */
+export function getTiedGroups(rows: StandingRow[]): StandingRow[][] {
+  const groups: StandingRow[][] = [];
+  for (const row of rows) {
+    const current = groups.at(-1);
+    if (current && current[0].points === row.points) current.push(row);
+    else groups.push([row]);
+  }
+  return groups.filter((group) => group.length > 1);
+}
+
+/**
  * Group stage points for a record, after any deduction. Can go below zero.
  * @param record - Wins, default wins and draws.
  * @param deductedPoints - Points taken off by the organizers.
@@ -77,11 +117,12 @@ export function getPlayoffPath(rank: number, format: PlayoffFormat): PlayoffPath
 
 /**
  * Ranks group stage records by net points (most first) and attaches team details.
- * Ties keep their input order until a tiebreaker rule is agreed.
+ * Ties on points follow the organizers' manual tiebreak order, then input order.
  * @param records - Group stage records, one per team.
  * @param teams - All teams in the season.
  * @param format - The season's playoff format, used to mark each team's path.
  * @param deductions - Point deductions keyed by team id.
+ * @param tiebreakOrder - Manual order for teams level on points, highest first.
  * @returns Standings sorted by rank.
  * @throws Error if a record references an unknown team.
  */
@@ -90,12 +131,21 @@ export function buildStandings(
   teams: Team[],
   format: PlayoffFormat,
   deductions: PointDeductionMap = {},
+  tiebreakOrder: TiebreakOrder = [],
 ): StandingRow[] {
   const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const tiebreakPosition = new Map(tiebreakOrder.map((teamId, index) => [teamId, index]));
+  const positionOf = (teamId: string) => tiebreakPosition.get(teamId) ?? Number.POSITIVE_INFINITY;
 
   return records
     .map((record) => ({ record, points: getPoints(record, deductions[record.teamId]?.points) }))
-    .sort((first, second) => second.points - first.points)
+    .sort(
+      (first, second) =>
+        second.points - first.points ||
+        // Infinity - Infinity is NaN; treat two unlisted teams as equal so the stable sort keeps input order.
+        positionOf(first.record.teamId) - positionOf(second.record.teamId) ||
+        0,
+    )
     .map(({ record, points }, index) => {
       const team = teamsById.get(record.teamId);
       if (!team) {

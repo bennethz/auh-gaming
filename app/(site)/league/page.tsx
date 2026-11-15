@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default async function LeaguePage() {
-  const { teams, groupResults, deductions } = await getLeagueData();
+  const { teams, groupResults, deductions, tiebreakOrder } = await getLeagueData();
   const format = SEASON.playoffFormat;
-  const standings = buildStandings(buildGroupRecords(teams, groupResults), teams, format, deductions);
+  const standings = buildStandings(buildGroupRecords(teams, groupResults), teams, format, deductions, tiebreakOrder);
   const brackets = buildPlayoffBrackets(format);
 
   return (

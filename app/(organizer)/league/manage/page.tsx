@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ManageLeaguePage() {
-  const { teams, groupResults, deductions, playoffEntries } = await getLeagueData();
+  const { teams, groupResults, deductions, tiebreakOrder, playoffEntries } = await getLeagueData();
 
   return (
     <Container className="pt-12 pb-6">
@@ -23,6 +23,7 @@ export default async function ManageLeaguePage() {
           initialResults={groupResults}
           initialPlayoffEntries={playoffEntries}
           initialDeductions={deductions}
+          initialTiebreakOrder={tiebreakOrder}
         />
       </AccessCodeGate>
     </Container>

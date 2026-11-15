@@ -15,8 +15,8 @@ import { buildStandings } from "@/lib/league/standings";
  */
 export async function CurrentSeason() {
   const leagueData = await getLeagueData();
-  const { teams, groupResults, deductions } = leagueData;
-  const standings = buildStandings(buildGroupRecords(teams, groupResults), teams, SEASON.playoffFormat, deductions);
+  const { teams, groupResults, deductions, tiebreakOrder } = leagueData;
+  const standings = buildStandings(buildGroupRecords(teams, groupResults), teams, SEASON.playoffFormat, deductions, tiebreakOrder);
   const asOf = getStandingsAsOf(leagueData);
 
   return (
