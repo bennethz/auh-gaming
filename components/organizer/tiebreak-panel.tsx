@@ -33,7 +33,7 @@ export function TiebreakPanel({ rows, onSwap }: TiebreakPanelProps) {
           No teams are tied on points.
         </p>
       ) : (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {groups.map((group) => (
             <section
               key={group[0].rank}
