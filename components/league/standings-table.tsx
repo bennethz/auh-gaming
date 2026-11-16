@@ -60,7 +60,7 @@ export function StandingsTable({
 
   return (
     <div>
-      <div className="notch overflow-x-auto bg-auh-ink text-auh-cream">
+      <div className="notch relative overflow-x-auto bg-auh-ink text-auh-cream">
         <table className="w-full border-collapse">
           <caption className="sr-only">Group stage standings, ranked by points</caption>
           <thead>

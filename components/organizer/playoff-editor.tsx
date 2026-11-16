@@ -32,7 +32,7 @@ export function PlayoffEditor({ brackets, onSave }: PlayoffEditorProps) {
         <div key={bracket.name} data-testid="bracket">
           <h3 className="mb-3 font-display text-4xl leading-none font-semibold">{bracket.name}</h3>
           {/* Brackets scroll inside their own wrapper so the page never scrolls sideways. */}
-          <div className="overflow-x-auto pb-1.5" tabIndex={0} aria-label={`${bracket.name} rounds`} role="region">
+          <div className="relative overflow-x-auto pb-1.5" tabIndex={0} aria-label={`${bracket.name} rounds`} role="region">
             <ol className="flex w-max gap-6">
               {bracket.rounds.map((round) => (
                 <li key={round.name} className="flex w-[230px] flex-col gap-2.5">

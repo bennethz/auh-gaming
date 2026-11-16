@@ -25,7 +25,8 @@ export function PlayoffRosterDialog({ ref, match, rosters }: PlayoffRosterDialog
     <dialog
       ref={ref}
       aria-labelledby="roster-dialog-title"
-      className="notch m-auto w-[calc(100%-32px)] max-w-[640px] bg-auh-ink p-0 text-auh-cream backdrop:bg-auh-ink/70"
+      // The dialog never grows past the screen; only the rosters scroll, so the title and Close stay visible.
+      className="notch fixed inset-0 m-auto h-fit max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-[640px] overflow-hidden border-t-4 border-auh-yellow bg-auh-ink p-0 text-auh-cream backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       // A click on the dialog element itself (not its content) is a click on the backdrop.
       onClick={(event) => {
         if (event.target === event.currentTarget) event.currentTarget.close();
@@ -33,9 +34,12 @@ export function PlayoffRosterDialog({ ref, match, rosters }: PlayoffRosterDialog
       data-testid="playoff-roster-dialog"
     >
       {match ? (
-        <div className="flex flex-col gap-5 p-6">
-          <div>
-            <h2 id="roster-dialog-title" className="font-display text-[32px] leading-none text-auh-yellow">
+        <div className="flex max-h-[calc(100dvh-32px)] flex-col">
+          <div className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
+            <h2
+              id="roster-dialog-title"
+              className="font-display text-2xl leading-none text-auh-yellow sm:text-[32px]"
+            >
               {match.id} · {match.roundName}
             </h2>
             <p className="mt-1 text-[13px] text-auh-cream-dim">
@@ -44,23 +48,27 @@ export function PlayoffRosterDialog({ ref, match, rosters }: PlayoffRosterDialog
             </p>
           </div>
 
-          <div className="grid items-start gap-3 sm:grid-cols-[1fr_auto_1fr]">
-            <TeamRoster slot={match.slotA} side="A" match={match} rosters={rosters} />
-            <span
-              aria-hidden="true"
-              className="text-center font-display text-2xl leading-none text-auh-cream-dim sm:self-center"
-            >
-              vs
-            </span>
-            <TeamRoster slot={match.slotB} side="B" match={match} rosters={rosters} />
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-6 sm:pb-0">
+            <div className="grid items-start gap-2 sm:grid-cols-[1fr_auto_1fr] sm:gap-3">
+              <TeamRoster slot={match.slotA} side="A" match={match} rosters={rosters} />
+              {/* Stacked on phones: a thin divider. Side by side: a large "vs" between the columns. */}
+              <span aria-hidden="true" className="flex items-center gap-2 sm:self-center">
+                <span className="h-px flex-1 bg-auh-ink-soft sm:hidden" />
+                <span className="font-display text-sm leading-none tracking-wider text-auh-cream-dim sm:text-2xl sm:tracking-normal">
+                  VS
+                </span>
+                <span className="h-px flex-1 bg-auh-ink-soft sm:hidden" />
+              </span>
+              <TeamRoster slot={match.slotB} side="B" match={match} rosters={rosters} />
+            </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end border-t border-auh-ink-soft px-4 py-3 sm:border-0 sm:px-6 sm:pt-4 sm:pb-6">
             <button
               type="button"
               autoFocus
               onClick={(event) => event.currentTarget.closest("dialog")?.close()}
-              className="min-h-11 border-2 border-auh-cream-dim px-4 font-display text-xl leading-none focus-visible:outline-3 focus-visible:outline-auh-orange"
+              className="min-h-11 w-full border-2 border-auh-cream-dim px-4 font-display text-xl leading-none focus-visible:outline-3 focus-visible:outline-auh-orange sm:w-auto"
               data-testid="roster-dialog-close"
             >
               Close
@@ -87,7 +95,7 @@ function TeamRoster({
 
   if (!slot.team) {
     return (
-      <section className="flex flex-col gap-1 bg-auh-ink-soft p-4" data-testid={testId}>
+      <section className="flex flex-col gap-1 bg-auh-ink-soft p-3 sm:p-4" data-testid={testId}>
         <h3 className="font-semibold text-auh-cream-dim">{slot.placeholder}</h3>
         <p className="text-[13px] text-auh-cream-dim">Team not decided yet.</p>
       </section>
@@ -99,7 +107,7 @@ function TeamRoster({
   const players = sortByClass(rosters[slot.team.id] ?? []);
 
   return (
-    <section className="flex min-w-0 flex-col gap-3 bg-auh-ink-soft p-4" data-testid={testId}>
+    <section className="flex min-w-0 flex-col gap-2 bg-auh-ink-soft p-3 sm:gap-3 sm:p-4" data-testid={testId}>
       <h3 className="flex items-center gap-2">
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <SeedNumber seed={slot.seed} />

@@ -69,10 +69,11 @@ export function Carousel({ children, label, header, className }: CarouselProps) 
           </div>
         ) : null}
       </div>
-      {/* Scrolls inside its own wrapper so the page never scrolls sideways. */}
+      {/* Scrolls inside its own wrapper so the page never scrolls sideways. `relative` keeps absolutely
+          positioned children (such as sr-only text) inside it; without it they stretch the page on mobile. */}
       <div
         ref={trackRef}
-        className="-mx-5 snap-x snap-mandatory scroll-px-5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative -mx-5 snap-x snap-mandatory scroll-px-5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         tabIndex={0}
         role="region"
         aria-roledescription="carousel"

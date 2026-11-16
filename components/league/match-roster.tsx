@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, type ReactNode, useContext, useRef, useState } from "react";
+import { createContext, type ReactNode, useContext, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import type { ResolvedMatch, ResolvedSlot } from "@/lib/league/playoffs";
 import type { TeamRosterMap } from "@/lib/league/teams";
@@ -21,13 +22,25 @@ export function MatchRosterProvider({ rosters, children }: { rosters: TeamRoster
     dialogRef.current?.showModal();
   };
 
+  // The dialog is portalled to <body> so ancestors with transforms, scroll-driven animations or
+  // horizontal scrolling (the `.reveal` sections, the bracket and carousel tracks) can't shift it.
+  const isClient = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
+
   return (
     <OpenMatchContext value={openMatch}>
       {children}
-      <PlayoffRosterDialog ref={dialogRef} match={match} rosters={rosters} />
+      {isClient
+        ? createPortal(<PlayoffRosterDialog ref={dialogRef} match={match} rosters={rosters} />, document.body)
+        : null}
     </OpenMatchContext>
   );
 }
+
+const subscribeNever = () => () => {};
 
 interface MatchRosterButtonProps {
   match: ResolvedMatch;
