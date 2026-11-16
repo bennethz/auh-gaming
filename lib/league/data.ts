@@ -5,6 +5,7 @@ import { toGroupResultMap, type GroupResultMap } from "./group-stage";
 import type { PlayoffEntryMap, PlayoffMatchEntry, PlayoffSeeds } from "./playoffs";
 import { GROUP_RESULTS, MATCHES, POINT_DEDUCTIONS, TEAMS } from "./sample-data";
 import type { PointDeductionMap, TiebreakOrder } from "./standings";
+import { isPlayerClass, type Player, type TeamRosterMap } from "./teams";
 import type { Match, MatchStage, MatchStatus, SeriesScore, Team } from "./types";
 
 /** Cache tag for all league data. Server Actions call `updateTag(LEAGUE_CACHE_TAG)` after writes. */
@@ -12,6 +13,8 @@ export const LEAGUE_CACHE_TAG = "league";
 
 export interface LeagueData {
   teams: Team[];
+  /** Each team's players in roster order, keyed by team id. */
+  rosters: TeamRosterMap;
   groupResults: GroupResultMap;
   deductions: PointDeductionMap;
   /** Manual order for teams level on points, highest first. Empty until an organizer sets it. */
@@ -37,6 +40,7 @@ export async function getLeagueData(): Promise<LeagueData> {
   if (!isSupabaseConfigured) {
     return {
       teams: TEAMS,
+      rosters: {},
       groupResults: toGroupResultMap(GROUP_RESULTS),
       deductions: POINT_DEDUCTIONS,
       tiebreakOrder: [],
@@ -56,6 +60,7 @@ export async function getLeagueData(): Promise<LeagueData> {
     playoffResult,
     seedsResult,
     metaResult,
+    playersResult,
   ] = await Promise.all([
       supabase.from("teams").select("id, name, captain").order("sort_order"),
       supabase.from("group_results").select("team_a_id, team_b_id, score"),
@@ -65,6 +70,7 @@ export async function getLeagueData(): Promise<LeagueData> {
       supabase.from("playoff_entries").select("match_id, score_a, score_b, match_date"),
       supabase.from("playoff_seeds").select("team_id").order("seed"),
       supabase.from("league_meta").select("standings_updated_at").maybeSingle(),
+      supabase.from("players").select("id, team_id, name, class").order("position"),
     ]);
 
   for (const { error } of [
@@ -83,9 +89,19 @@ export async function getLeagueData(): Promise<LeagueData> {
   if (seedsResult.error && !isMissingTableError(seedsResult.error)) {
     throw new Error(`Supabase query failed: ${seedsResult.error.message}`);
   }
+  // players comes from migration 0005. Until it's run, teams just have no rosters.
+  if (playersResult.error && !isMissingTableError(playersResult.error)) {
+    throw new Error(`Supabase query failed: ${playersResult.error.message}`);
+  }
+  const rosters: TeamRosterMap = {};
+  for (const row of playersResult.data ?? []) {
+    const player: Player = { id: row.id, name: row.name, playerClass: isPlayerClass(row.class) ? row.class : "C" };
+    (rosters[row.team_id] ??= []).push(player);
+  }
 
   return {
     teams: teamsResult.data ?? [],
+    rosters,
     groupResults: Object.fromEntries(
       (resultsResult.data ?? []).map((row) => [`${row.team_a_id}|${row.team_b_id}`, row.score as SeriesScore]),
     ),

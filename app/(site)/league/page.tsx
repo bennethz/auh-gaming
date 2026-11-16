@@ -11,6 +11,7 @@ import { buildGroupRecords } from "@/lib/league/group-stage";
 import { getChampion, getSeasonStatus, getSeededTeams, resolvePlayoffs } from "@/lib/league/playoffs";
 import { SEASON } from "@/lib/league/sample-data";
 import { buildStandings, FORMAT_RULES } from "@/lib/league/standings";
+import { getPlayoffRosters } from "@/lib/league/teams";
 
 export const metadata: Metadata = {
   title: `${SEASON.leagueName} Season ${SEASON.number}`,
@@ -18,7 +19,8 @@ export const metadata: Metadata = {
 };
 
 export default async function LeaguePage() {
-  const { teams, groupResults, deductions, tiebreakOrder, playoffEntries, playoffSeeds } = await getLeagueData();
+  const { teams, rosters, groupResults, deductions, tiebreakOrder, playoffEntries, playoffSeeds } =
+    await getLeagueData();
   const format = SEASON.playoffFormat;
   const standings = buildStandings(buildGroupRecords(teams, groupResults), teams, format, deductions, tiebreakOrder);
   // Teams appear only once the organizers generate the playoffs and freeze the seeds.
@@ -28,6 +30,7 @@ export default async function LeaguePage() {
     isGenerated ? getSeededTeams(playoffSeeds, teams) : [],
     isGenerated ? playoffEntries : {},
   );
+  const playoffRosters = getPlayoffRosters(isGenerated ? getSeededTeams(playoffSeeds, teams) : [], rosters);
 
   return (
     <>
@@ -44,6 +47,7 @@ export default async function LeaguePage() {
           playoffs={
             <PlayoffBrackets
               brackets={brackets}
+              rosters={playoffRosters}
               formatSummary={FORMAT_RULES[format].summary}
               isGenerated={isGenerated}
             />

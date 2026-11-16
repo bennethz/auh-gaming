@@ -11,6 +11,7 @@ import {
 } from "./playoffs";
 import { SEASON } from "./sample-data";
 import { buildStandings } from "./standings";
+import { getPlayoffRosters, type TeamRosterMap } from "./teams";
 import type { StandingRow, Team } from "./types";
 
 /** A ready-to-play playoff match with the name of the bracket it belongs to. */
@@ -32,6 +33,8 @@ export interface SeasonSnapshot {
   laterMatches: FeaturedMatch[];
   /** The grand final winner, once the grand final has a result. */
   champion?: Team;
+  /** Players of the playoff teams, keyed by team id. Empty during the group stage. */
+  rosters: TeamRosterMap;
 }
 
 const UNDATED = "9999-12-31";
@@ -41,7 +44,7 @@ const UNDATED = "9999-12-31";
  */
 export async function getSeasonSnapshot(): Promise<SeasonSnapshot> {
   const leagueData = await getLeagueData();
-  const { teams, groupResults, deductions, tiebreakOrder, playoffEntries, playoffSeeds } = leagueData;
+  const { teams, rosters, groupResults, deductions, tiebreakOrder, playoffEntries, playoffSeeds } = leagueData;
   const standings = buildStandings(
     buildGroupRecords(teams, groupResults),
     teams,
@@ -52,14 +55,11 @@ export async function getSeasonSnapshot(): Promise<SeasonSnapshot> {
   // Generating the playoffs freezes the seeds, which ends the group stage.
   const isPlayoffsLive = playoffSeeds.length > 0;
   if (!isPlayoffsLive) {
-    return { standings, asOf: getStandingsAsOf(leagueData), isPlayoffsLive, laterMatches: [] };
+    return { standings, asOf: getStandingsAsOf(leagueData), isPlayoffsLive, laterMatches: [], rosters: {} };
   }
 
-  const brackets = resolvePlayoffs(
-    buildPlayoffBrackets(SEASON.playoffFormat),
-    getSeededTeams(playoffSeeds, teams),
-    playoffEntries,
-  );
+  const seededTeams = getSeededTeams(playoffSeeds, teams);
+  const brackets = resolvePlayoffs(buildPlayoffBrackets(SEASON.playoffFormat), seededTeams, playoffEntries);
   // Stable sort keeps bracket order for matches on the same day or without a date.
   const upcoming = getUpcomingPlayoffMatches(brackets)
     .flatMap((group) => group.matches.map((match) => ({ bracketName: group.name, match })))
@@ -73,5 +73,6 @@ export async function getSeasonSnapshot(): Promise<SeasonSnapshot> {
     nextMatch: upcoming[0],
     laterMatches: upcoming.slice(1),
     champion,
+    rosters: getPlayoffRosters(seededTeams, rosters),
   };
 }

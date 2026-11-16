@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CaptainName } from "@/components/league/captain-name";
+import { MatchRosterButton } from "@/components/league/match-roster";
 import { SeedNumber } from "@/components/league/seed-number";
+import { VersusDivider } from "@/components/league/versus-divider";
 import { Carousel } from "@/components/ui/carousel";
 import { cn } from "@/lib/cn";
 import { formatCalendarDate } from "@/lib/format-date";
@@ -52,20 +54,20 @@ export function Eyebrow({ children, className = "mb-3" }: { children: ReactNode;
   );
 }
 
-/** One side of the versus card: monogram, team name and seed. */
+/** One side of the versus card: monogram, team name and seed. Spans only, since it sits inside a button. */
 function VersusSide({ slot }: { slot: ResolvedSlot }) {
-  if (!slot.team) return <p className="text-center text-auh-cream-dim">{slot.placeholder}</p>;
+  if (!slot.team) return <span className="block text-center text-auh-cream-dim">{slot.placeholder}</span>;
   return (
-    <div className="flex min-w-0 flex-col items-center gap-3 text-center">
+    <span className="flex min-w-0 flex-col items-center gap-3 text-center">
       <TeamMonogram team={slot.team} className="size-16 text-[44px] sm:size-24 sm:text-[68px]" />
-      <p className="max-w-full font-display text-[clamp(34px,4.4vw,56px)] leading-[0.9] font-semibold text-auh-cream">
+      <span className="max-w-full font-display text-[clamp(34px,4.4vw,56px)] leading-[0.9] font-semibold text-auh-cream">
         {slot.team.name}
-      </p>
+      </span>
       <CaptainName name={slot.team.captain} className="-mt-1 max-w-full text-sm" />
       {slot.seed !== undefined ? (
-        <p className="text-xs font-semibold text-auh-cream-dim">Seed #{slot.seed}</p>
+        <span className="text-xs font-semibold text-auh-cream-dim">Seed #{slot.seed}</span>
       ) : null}
-    </div>
+    </span>
   );
 }
 
@@ -85,16 +87,29 @@ export function VersusCard({ featured }: { featured: FeaturedMatch }) {
         </span>
       </p>
 
-      <div className="grid grid-cols-1 items-center gap-6 px-5 py-8 sm:grid-cols-[1fr_auto_1fr] sm:px-7 sm:py-10">
-        <VersusSide slot={match.slotA} />
-        <p
+      {/* The teams area opens the players dialog. */}
+      <MatchRosterButton
+        match={match}
+        className="block w-full px-5 py-8 transition-colors hover:bg-auh-ink/40 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-auh-orange sm:px-7 sm:py-10"
+        data-testid="featured-match-players"
+      >
+        <span className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto_1fr]">
+          <VersusSide slot={match.slotA} />
+          <span
+            aria-hidden="true"
+            className="block -skew-x-6 text-center font-display text-[clamp(64px,10vw,132px)] leading-[0.8] font-bold text-auh-yellow"
+          >
+            VS
+          </span>
+          <VersusSide slot={match.slotB} />
+        </span>
+        <span
           aria-hidden="true"
-          className="-skew-x-6 text-center font-display text-[clamp(64px,10vw,132px)] leading-[0.8] font-bold text-auh-yellow"
+          className="mt-6 block text-center text-sm font-semibold text-auh-yellow group-hover:underline"
         >
-          VS
-        </p>
-        <VersusSide slot={match.slotB} />
-      </div>
+          See the players
+        </span>
+      </MatchRosterButton>
 
       <p className="flex flex-wrap items-center justify-center gap-3 border-t border-auh-ink px-5 py-4 text-[15px] text-auh-cream">
         {match.matchDate ? (
@@ -118,7 +133,7 @@ export function VersusCard({ featured }: { featured: FeaturedMatch }) {
 /** Team row inside a match tile. */
 function TileSlot({ slot }: { slot: ResolvedSlot }) {
   return (
-    <p className="flex items-center gap-1.5 px-3.5 py-2">
+    <span className="flex items-center gap-1.5 px-3.5 py-2">
       {slot.team ? (
         <>
           <SeedNumber seed={slot.seed} />
@@ -130,7 +145,7 @@ function TileSlot({ slot }: { slot: ResolvedSlot }) {
       ) : (
         <span className="text-auh-cream-dim">{slot.placeholder}</span>
       )}
-    </p>
+    </span>
   );
 }
 
@@ -142,23 +157,25 @@ export function LaterMatches({ matches }: { matches: FeaturedMatch[] }) {
     <div className="mt-10" data-testid="later-matches">
       <Carousel label="Other upcoming playoff matches" header={<Eyebrow className="">Also coming up</Eyebrow>}>
         {matches.map(({ bracketName, match }) => (
-          <li
-            key={match.id}
-            className="notch w-[250px] shrink-0 snap-start bg-auh-ink-soft text-sm text-auh-cream"
-            data-testid={`later-match-${match.id}`}
-          >
-            <p className="flex justify-between gap-2 px-3.5 pt-3 pb-1 text-xs font-semibold text-auh-cream-dim">
-              <span className="truncate">
-                {bracketName} · {match.roundName}
+          <li key={match.id} className="w-[250px] shrink-0 snap-start" data-testid={`later-match-${match.id}`}>
+            <MatchRosterButton
+              match={match}
+              className="notch focus-notch block h-full w-full bg-auh-ink-soft text-sm text-auh-cream transition-[filter] hover:brightness-125"
+            >
+              <span className="flex justify-between gap-2 px-3.5 pt-3 pb-1 text-xs font-semibold text-auh-cream-dim">
+                <span className="truncate">
+                  {bracketName} · {match.roundName}
+                </span>
+                <span>{match.bestOf}</span>
               </span>
-              <span>{match.bestOf}</span>
-            </p>
-            <TileSlot slot={match.slotA} />
-            <TileSlot slot={match.slotB} />
-            <p className="flex justify-between bg-auh-ink px-3.5 pt-[5px] pb-[7px] text-xs text-auh-cream-dim">
-              <span className="font-semibold text-auh-yellow">{match.id}</span>
-              <span>{match.matchDate ? formatCalendarDate(match.matchDate) : "Date to be set"}</span>
-            </p>
+              <TileSlot slot={match.slotA} />
+              <VersusDivider lineClassName="bg-auh-ink" />
+              <TileSlot slot={match.slotB} />
+              <span className="flex justify-between bg-auh-ink px-3.5 pt-[5px] pb-[7px] text-xs text-auh-cream-dim">
+                <span className="font-semibold text-auh-yellow">{match.id}</span>
+                <span>{match.matchDate ? formatCalendarDate(match.matchDate) : "Date to be set"}</span>
+              </span>
+            </MatchRosterButton>
           </li>
         ))}
       </Carousel>

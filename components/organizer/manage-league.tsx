@@ -32,21 +32,27 @@ import {
   swapTiebreakOrder,
   type TiebreakOrder,
 } from "@/lib/league/standings";
+import { applyRosterCaptains, type TeamRosterMap, validateTeams, withCaptainFallback } from "@/lib/league/teams";
 import type { PlayoffFormat, Team } from "@/lib/league/types";
 import { GroupStageMatrix } from "./group-stage-matrix";
 import { PlayoffEditor } from "./playoff-editor";
+import { TeamManager } from "./team-manager";
 import { TiebreakPanel } from "./tiebreak-panel";
 
-type ManageView = "group-stage" | "playoffs";
+type ManageView = "group-stage" | "playoffs" | "teams";
 
 const VIEW_OPTIONS: ReadonlyArray<ChipOption<ManageView>> = [
   { value: "group-stage", label: "Group Stage" },
   { value: "playoffs", label: "Playoffs" },
+  { value: "teams", label: "Teams" },
 ];
 
 interface ManageLeagueProps {
   seasonNumber: number;
-  teams: Team[];
+  /** Teams as stored, used to start and to reset the team editor. */
+  initialTeams: Team[];
+  /** Team rosters as stored, keyed by team id. */
+  initialRosters: TeamRosterMap;
   playoffFormat: PlayoffFormat;
   /** Group stage results as stored, used to start and to reset the grid. */
   initialResults: GroupResultMap;
@@ -66,7 +72,8 @@ interface ManageLeagueProps {
  */
 export function ManageLeague({
   seasonNumber,
-  teams,
+  initialTeams,
+  initialRosters,
   playoffFormat,
   initialResults,
   initialPlayoffEntries,
@@ -75,6 +82,10 @@ export function ManageLeague({
   initialPlayoffSeeds,
 }: ManageLeagueProps) {
   const [view, setView] = useState<ManageView>("group-stage");
+  const [teamNames, setTeamNames] = useState<Team[]>(initialTeams);
+  // Teams saved before rosters existed start with their stored captain as a Captain-class player.
+  const [startingRosters] = useState(() => withCaptainFallback(initialTeams, initialRosters));
+  const [rosters, setRosters] = useState<TeamRosterMap>(startingRosters);
   const [results, setResults] = useState<GroupResultMap>(initialResults);
   const [playoffEntries, setPlayoffEntries] = useState<PlayoffEntryMap>(initialPlayoffEntries);
   const [deductions, setDeductions] = useState<PointDeductionMap>(initialDeductions);
@@ -82,6 +93,8 @@ export function ManageLeague({
   const [playoffSeeds, setPlayoffSeeds] = useState<PlayoffSeeds>(initialPlayoffSeeds);
   // What's stored: the props at first, then whatever was last saved successfully.
   const [saved, setSaved] = useState({
+    teamNames: initialTeams,
+    rosters: startingRosters,
     results: initialResults,
     playoffEntries: initialPlayoffEntries,
     deductions: initialDeductions,
@@ -92,10 +105,17 @@ export function ManageLeague({
   const { message, showToast } = useToast();
   const generateDialogRef = useRef<HTMLDialogElement>(null);
 
+  // Teams with edited names and captains taken from the rosters, used everywhere on this screen.
+  const teams = useMemo(() => applyRosterCaptains(teamNames, rosters), [teamNames, rosters]);
+  const teamErrors = useMemo(() => validateTeams(teamNames, rosters), [teamNames, rosters]);
+  const teamErrorCount = Object.keys(teamErrors).length;
+
   const totalSeries = getTotalSeriesCount(teams.length);
   const playedSeries = getPlayedSeriesCount(results);
   const seriesLeft = totalSeries - playedSeries;
   const hasChanges =
+    teamNames !== saved.teamNames ||
+    rosters !== saved.rosters ||
     results !== saved.results ||
     playoffEntries !== saved.playoffEntries ||
     deductions !== saved.deductions ||
@@ -144,6 +164,8 @@ export function ManageLeague({
   };
 
   const handleUndo = () => {
+    setTeamNames(saved.teamNames);
+    setRosters(saved.rosters);
     setResults(saved.results);
     setPlayoffEntries(saved.playoffEntries);
     setDeductions(saved.deductions);
@@ -152,13 +174,26 @@ export function ManageLeague({
   };
 
   const handleSave = () => {
+    if (teamErrorCount > 0) {
+      setView("teams");
+      showToast(`Fix the ${teamErrorCount === 1 ? "team" : `${teamErrorCount} teams`} marked in orange before saving.`);
+      return;
+    }
     startSaving(async () => {
-      const result = await saveLeague({ groupResults: results, deductions, tiebreakOrder, playoffEntries, playoffSeeds });
+      const result = await saveLeague({
+        teams,
+        rosters,
+        groupResults: results,
+        deductions,
+        tiebreakOrder,
+        playoffEntries,
+        playoffSeeds,
+      });
       if (!result.ok) {
         showToast(`Saving failed: ${result.error}`);
         return;
       }
-      setSaved({ results, playoffEntries, deductions, tiebreakOrder, playoffSeeds });
+      setSaved({ teamNames, rosters, results, playoffEntries, deductions, tiebreakOrder, playoffSeeds });
       showToast("Saved. Public pages are updated.");
     });
   };
@@ -265,6 +300,27 @@ export function ManageLeague({
           ) : null}
         </div>
         <PlayoffEditor brackets={resolvedBrackets} onSave={handleSavePlayoffMatch} />
+      </section>
+
+      <section hidden={view !== "teams"} aria-labelledby="teams-title" data-testid="teams-editor">
+        <div className="mb-5">
+          <h2 id="teams-title" className="font-display text-[40px] leading-[0.9] font-semibold">
+            Teams
+          </h2>
+          <p className="mt-1.5 text-[15px] text-auh-olive">
+            Rename teams, set each team’s captain and add players in class S, A, B or C.
+          </p>
+          <p className="mt-1 text-[13px] text-auh-olive">The captain is shown with a crown across the site.</p>
+        </div>
+        <TeamManager
+          teams={teamNames}
+          rosters={rosters}
+          errors={teamErrors}
+          onRename={(teamId, name) =>
+            setTeamNames((current) => current.map((team) => (team.id === teamId ? { ...team, name } : team)))
+          }
+          onRosterChange={(teamId, roster) => setRosters((current) => ({ ...current, [teamId]: roster }))}
+        />
       </section>
 
       <ConfirmDialog

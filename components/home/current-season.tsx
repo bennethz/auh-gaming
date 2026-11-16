@@ -1,4 +1,5 @@
 import { ChampionCard, Eyebrow, LaterMatches, Podium, VersusCard } from "@/components/home/match-center";
+import { MatchRosterProvider } from "@/components/league/match-roster";
 import { PlayoffLegend, StandingsTable } from "@/components/league/standings-table";
 import { ButtonLink, ExternalButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -86,7 +87,7 @@ export async function CurrentSeason() {
 
 /** What the match center band shows at each point in the season. */
 function MatchCenterContent({ snapshot }: { snapshot: SeasonSnapshot }) {
-  const { standings, asOf, isPlayoffsLive, nextMatch, laterMatches, champion } = snapshot;
+  const { standings, asOf, isPlayoffsLive, nextMatch, laterMatches, champion, rosters } = snapshot;
 
   if (champion) {
     return <ChampionCard team={champion} seasonLabel={SEASON_LABEL} />;
@@ -94,11 +95,11 @@ function MatchCenterContent({ snapshot }: { snapshot: SeasonSnapshot }) {
 
   if (isPlayoffsLive && nextMatch) {
     return (
-      <>
+      <MatchRosterProvider rosters={rosters}>
         <Eyebrow>Next up</Eyebrow>
         <VersusCard featured={nextMatch} />
         <LaterMatches matches={laterMatches} />
-      </>
+      </MatchRosterProvider>
     );
   }
 

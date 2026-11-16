@@ -51,6 +51,11 @@ export interface ResolvedMatch extends PlayoffMatchEntry {
   winnerSide?: SlotSide;
 }
 
+/** True once at least one team of the match is known, so there are players to show. */
+export function hasKnownTeam(match: ResolvedMatch): boolean {
+  return Boolean(match.slotA.team || match.slotB.team);
+}
+
 export interface ResolvedBracket {
   name: string;
   rounds: Array<{ name: string; bestOf: BestOf; matches: ResolvedMatch[] }>;

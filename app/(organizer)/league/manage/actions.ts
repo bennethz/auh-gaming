@@ -5,9 +5,22 @@ import type { GroupResultMap } from "@/lib/league/group-stage";
 import { isMissingTableError, LEAGUE_CACHE_TAG } from "@/lib/league/data";
 import type { PlayoffEntryMap, PlayoffSeeds } from "@/lib/league/playoffs";
 import type { PointDeductionMap, TiebreakOrder } from "@/lib/league/standings";
+import {
+  getCaptainName,
+  isPlayerClass,
+  MAX_PLAYER_NAME_LENGTH,
+  MAX_TEAM_NAME_LENGTH,
+  type TeamRosterMap,
+  validateTeams,
+} from "@/lib/league/teams";
+import type { Team } from "@/lib/league/types";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export interface SaveLeagueInput {
+  /** Teams with their edited names. Only existing teams are updated; none are added or removed. */
+  teams: Team[];
+  /** Each team's players, in roster order. The Captain-class player becomes the team's captain. */
+  rosters: TeamRosterMap;
   groupResults: GroupResultMap;
   deductions: PointDeductionMap;
   tiebreakOrder: TiebreakOrder;
@@ -19,7 +32,7 @@ export interface SaveLeagueInput {
 export type SaveLeagueResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Replaces the stored group results, point deductions, tiebreak order, playoff entries and playoff seeds with the organizer's edits,
+ * Updates team names and captains, replaces team rosters, and replaces the stored group results, point deductions, tiebreak order, playoff entries and playoff seeds with the organizer's edits,
  * stamps the save time shown as the homepage's "standings as of" date, then refreshes the cached
  * league data so public pages show the change.
  * NOTE: No auth check. The access code gate is client-side only; anyone who can call this action can write.
@@ -27,7 +40,31 @@ export type SaveLeagueResult = { ok: true } | { ok: false; error: string };
  */
 export async function saveLeague(input: SaveLeagueInput): Promise<SaveLeagueResult> {
   try {
+    const teamErrors = Object.values(validateTeams(input.teams, input.rosters)).flat();
+    if (teamErrors.length > 0) return { ok: false, error: teamErrors[0] };
+
     const supabase = getSupabaseAdminClient();
+
+    const teamRows = input.teams.map((team) => ({
+      id: team.id,
+      name: team.name.trim().slice(0, MAX_TEAM_NAME_LENGTH),
+      captain: getCaptainName(input.rosters[team.id]).slice(0, MAX_PLAYER_NAME_LENGTH),
+    }));
+    const teamIds = new Set(teamRows.map((row) => row.id));
+    const playerRows = Object.entries(input.rosters)
+      .filter(([teamId]) => teamIds.has(teamId))
+      .flatMap(([teamId, roster]) =>
+        roster.map((player, position) => {
+          if (!isPlayerClass(player.playerClass)) throw new Error(`Unknown player class: ${player.playerClass}`);
+          return {
+            id: player.id,
+            team_id: teamId,
+            name: player.name.trim().slice(0, MAX_PLAYER_NAME_LENGTH),
+            class: player.playerClass,
+            position,
+          };
+        }),
+      );
 
     const groupRows = Object.entries(input.groupResults).map(([pairKey, score]) => {
       const [teamAId, teamBId] = pairKey.split("|");
@@ -57,6 +94,24 @@ export async function saveLeague(input: SaveLeagueInput): Promise<SaveLeagueResu
           "The playoff_seeds table doesn't exist yet. Run supabase/migrations/0004_playoff_seeds.sql in Supabase, then save again.",
         );
       }
+    }
+
+    // Same for players (migration 0005): only an error when there are players to save.
+    try {
+      await replaceRows(supabase, "players", "id", playerRows);
+    } catch (error) {
+      if (!(error instanceof MissingTableError)) throw error;
+      if (playerRows.length > 0) {
+        throw new Error(
+          "The players table doesn't exist yet. Run supabase/migrations/0005_players.sql in Supabase, then save again.",
+        );
+      }
+    }
+
+    // Upsert only touches the listed columns, so sort_order is kept.
+    if (teamRows.length > 0) {
+      const { error: teamsError } = await supabase.from("teams").upsert(teamRows);
+      if (teamsError) throw new Error(`teams: ${teamsError.message}`);
     }
 
     // Delete-then-insert per table. Not atomic, which is acceptable for a test app.
