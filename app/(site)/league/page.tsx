@@ -34,6 +34,7 @@ export default async function LeaguePage() {
       <LeagueHero status={getSeasonStatus(isGenerated, getChampion(brackets) !== undefined)} />
       <Container>
         <LeagueViewTabs
+          playoffsLive={isGenerated}
           leaderboard={
             <>
               <LeaderboardTable rows={standings} format={format} />

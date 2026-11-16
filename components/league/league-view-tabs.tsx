@@ -16,14 +16,16 @@ interface LeagueViewTabsProps {
   leaderboard: ReactNode;
   /** Server-rendered playoff brackets section. */
   playoffs: ReactNode;
+  /** Whether the playoffs are live; if so the Playoffs tab is selected first. */
+  playoffsLive: boolean;
 }
 
 /**
  * Filters the league page between the leaderboard, the playoffs or both.
  * Sections are rendered on the server and passed in, so only the toggle runs on the client.
  */
-export function LeagueViewTabs({ leaderboard, playoffs }: LeagueViewTabsProps) {
-  const [view, setView] = useState<LeagueView>("all");
+export function LeagueViewTabs({ leaderboard, playoffs, playoffsLive }: LeagueViewTabsProps) {
+  const [view, setView] = useState<LeagueView>(playoffsLive ? "playoffs" : "all");
 
   return (
     <>

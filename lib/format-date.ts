@@ -6,10 +6,17 @@ const LEAGUE_TIME_ZONE = "Asia/Dubai";
  * @param isoDateTime - ISO 8601 date-time with offset, for example "2026-11-14T20:00:00+04:00".
  * @returns Day of month ("14"), short month ("Nov") and 24-hour time ("20:00").
  */
-export function getMatchDateParts(isoDateTime: string): { day: string; month: string; time: string } {
+export function getMatchDateParts(isoDateTime: string): {
+  day: string;
+  month: string;
+  time: string;
+} {
   const date = new Date(isoDateTime);
   const format = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en-GB", { timeZone: LEAGUE_TIME_ZONE, ...options }).format(date);
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: LEAGUE_TIME_ZONE,
+      ...options,
+    }).format(date);
 
   return {
     day: format({ day: "numeric" }),
@@ -33,17 +40,22 @@ export function formatLongDate(isoDateTime: string): string {
 }
 
 /**
- * Formats a calendar date as "DD MMM YYYY".
+ * Formats a calendar date as "Ddd DD MMM YYYY".
  * @param dateValue - A "YYYY-MM-DD" date, as a date input returns it.
- * @returns For example "05 Dec 2026".
+ * @returns For example "Sat 05 Dec 2026".
  */
 export function formatCalendarDate(dateValue: string): string {
   const [year, month, day] = dateValue.split("-").map(Number);
   // Format in UTC so the calendar date never shifts with the viewer's time zone.
-  return new Intl.DateTimeFormat("en-GB", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "UTC",
+    weekday: "short",
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(new Date(Date.UTC(year, month - 1, day)));
+  }).formatToParts(new Date(Date.UTC(year, month - 1, day)));
+  // Assembled from parts so the separators are the same in every browser.
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("weekday")}, ${part("day")} ${part("month")} ${part("year")}`;
 }

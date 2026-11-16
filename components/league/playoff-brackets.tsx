@@ -2,6 +2,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/cn";
 import { formatCalendarDate } from "@/lib/format-date";
 import type { ResolvedBracket, ResolvedMatch, ResolvedSlot, SlotSide } from "@/lib/league/playoffs";
+import { CaptainName } from "./captain-name";
 import { SeedNumber } from "./seed-number";
 
 interface PlayoffBracketsProps {
@@ -94,9 +95,12 @@ function SlotRow({
       )}
     >
       {slot.team ? (
-        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <SeedNumber seed={slot.seed} />
-          <span className={cn("truncate font-semibold", isWinner && "text-auh-yellow")}>{slot.team.name}</span>
+          <span className="flex min-w-0 flex-col">
+            <span className={cn("truncate font-semibold", isWinner && "text-auh-yellow")}>{slot.team.name}</span>
+            <CaptainName name={slot.team.captain} />
+          </span>
         </span>
       ) : (
         <span className="min-w-0 flex-1 text-auh-cream-dim">{slot.placeholder}</span>

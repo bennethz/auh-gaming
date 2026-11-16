@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CaptainName } from "@/components/league/captain-name";
 import { SeedNumber } from "@/components/league/seed-number";
 import { Carousel } from "@/components/ui/carousel";
 import { cn } from "@/lib/cn";
@@ -60,6 +61,7 @@ function VersusSide({ slot }: { slot: ResolvedSlot }) {
       <p className="max-w-full font-display text-[clamp(34px,4.4vw,56px)] leading-[0.9] font-semibold text-auh-cream">
         {slot.team.name}
       </p>
+      <CaptainName name={slot.team.captain} className="-mt-1 max-w-full text-sm" />
       {slot.seed !== undefined ? (
         <p className="text-xs font-semibold text-auh-cream-dim">Seed #{slot.seed}</p>
       ) : null}
@@ -116,11 +118,14 @@ export function VersusCard({ featured }: { featured: FeaturedMatch }) {
 /** Team row inside a match tile. */
 function TileSlot({ slot }: { slot: ResolvedSlot }) {
   return (
-    <p className="flex items-baseline gap-1.5 px-3.5 py-2">
+    <p className="flex items-center gap-1.5 px-3.5 py-2">
       {slot.team ? (
         <>
           <SeedNumber seed={slot.seed} />
-          <span className="truncate font-semibold">{slot.team.name}</span>
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate font-semibold">{slot.team.name}</span>
+            <CaptainName name={slot.team.captain} />
+          </span>
         </>
       ) : (
         <span className="text-auh-cream-dim">{slot.placeholder}</span>
