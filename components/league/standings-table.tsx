@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/cn";
 import { FORMAT_RULES } from "@/lib/league/standings";
@@ -110,12 +111,14 @@ export function StandingsTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
+            {rows.map((row, index) => {
               const pathStyle = PLAYOFF_PATH_STYLES[row.path];
               return (
                 <tr
                   key={row.team.id}
-                  className={showPlayoffs ? pathStyle.rowClassName : undefined}
+                  // Fades in row by row when the table sits inside a <Reveal variant="fade">.
+                  style={{ "--i": index } as CSSProperties}
+                  className={cn("reveal-item", showPlayoffs && pathStyle.rowClassName)}
                   data-testid={rowTestId}
                 >
                   <td

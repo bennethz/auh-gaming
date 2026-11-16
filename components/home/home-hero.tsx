@@ -27,7 +27,7 @@ export function HomeHero() {
         <span>GAMING</span>
       </div>
 
-      <Container className="relative flex flex-col items-center gap-8 pt-10 pb-16 text-center md:pt-16 md:pb-20">
+      <Container className="intro relative flex flex-col items-center gap-8 pt-10 pb-16 text-center md:pt-16 md:pb-20">
         <BrandLogo size="hero" className="shrink-0" />
 
         <div className="flex max-w-[640px] flex-col items-center gap-4">

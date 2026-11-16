@@ -3,6 +3,7 @@ import { MatchRosterProvider } from "@/components/league/match-roster";
 import { PlayoffLegend, StandingsTable } from "@/components/league/standings-table";
 import { ButtonLink, ExternalButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Badge, Tag } from "@/components/ui/tag";
 import { formatLongDate } from "@/lib/format-date";
@@ -26,25 +27,27 @@ export async function CurrentSeason() {
   return (
     <section aria-labelledby="current-season-title" data-testid="current-season">
       <div className="bg-auh-ink text-auh-cream" data-testid="match-center">
-        <Container className="reveal py-16 md:py-20">
+        <Container className="py-12 md:py-20">
           <SectionHeading
             id="current-season-title"
             title={SEASON_LABEL}
             titleClassName="text-auh-yellow"
             description={`${SEASON.teamCount} teams battling it out in our community ${SEASON.game} league.`}
             descriptionClassName="text-auh-cream-dim"
-            className="mb-10"
+            className="mb-8 md:mb-10"
             aside={
               <Badge data-testid="season-status-badge">
                 {getSeasonStatus(isPlayoffsLive, champion !== undefined)}
               </Badge>
             }
           />
-          <MatchCenterContent snapshot={snapshot} />
+          <Reveal variant="fade">
+            <MatchCenterContent snapshot={snapshot} />
+          </Reveal>
         </Container>
       </div>
 
-      <Container className="reveal pt-12 pb-6">
+      <Container className="pt-12 pb-6">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           {isPlayoffsLive ? (
             <p className="flex items-center gap-2 text-[15px] font-semibold" data-testid="group-stage-completed">
@@ -67,7 +70,9 @@ export async function CurrentSeason() {
           <PlayoffLegend format={SEASON.playoffFormat} />
         </div>
 
-        <StandingsTable rows={standings} showSeriesOnMobile rowTestId="home-standings-row" />
+        <Reveal variant="fade">
+          <StandingsTable rows={standings} showSeriesOnMobile rowTestId="home-standings-row" />
+        </Reveal>
 
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-4">
           <ButtonLink href="/league" variant="dark" data-testid="season-league-link">

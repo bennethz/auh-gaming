@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react";
 import { Container } from "@/components/ui/container";
+import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 
 const PARTNER_SLOT_COUNT = 4;
@@ -10,21 +12,24 @@ const PARTNER_SLOT_COUNT = 4;
 export function Partners() {
   return (
     <section aria-labelledby="partners-title" className="mt-[72px] bg-auh-ink" data-testid="partners">
-      <Container className="reveal py-16 md:py-20">
-        <SectionHeading id="partners-title" title="Partners and Sponsors" titleClassName="text-auh-yellow" />
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3.5">
-          {Array.from({ length: PARTNER_SLOT_COUNT }, (_, index) => (
-            <li
-              key={index}
-              role="img"
-              aria-label="Partner logo placeholder"
-              className="notch flex h-[110px] items-center justify-center border-3 border-auh-ink bg-auh-paper text-sm font-semibold"
-              data-testid="partner-logo"
-            >
-              Partner logo
-            </li>
-          ))}
-        </ul>
+      <Container className="py-16 md:py-20">
+        <Reveal>
+          <SectionHeading id="partners-title" title="Partners and Sponsors" titleClassName="text-auh-yellow" />
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3.5">
+            {Array.from({ length: PARTNER_SLOT_COUNT }, (_, index) => (
+              <li
+                key={index}
+                role="img"
+                aria-label="Partner logo placeholder"
+                style={{ "--i": index } as CSSProperties}
+                className="reveal-item notch flex h-[110px] items-center justify-center border-3 border-auh-ink bg-auh-paper text-sm font-semibold"
+                data-testid="partner-logo"
+              >
+                Partner logo
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </Container>
     </section>
   );

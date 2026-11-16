@@ -90,23 +90,76 @@
 }
 
 /*
- * Slides and fades an element in as it scrolls into view. Uses scroll-driven animations where supported;
- * elsewhere (and with reduced motion) the element simply shows.
+ * One-shot entrances driven by <Reveal> (components/ui/reveal.tsx), which sets `data-revealed` the first time
+ * its section enters view. Content is only hidden when scripts run and motion is allowed, so it always shows
+ * otherwise. Nothing skews or rotates, so text stays level throughout.
+ *
+ * - `data-reveal="rise"` (showcase sections): the section and its `.reveal-item` children fade in and lift
+ *   12px, the children in a 60ms stagger by their `--i` index.
+ * - `data-reveal="fade"` (data such as the standings): the section stays put and only its `.reveal-item`
+ *   children fade in, in a fast 25ms stagger, so rows never move out of line.
+ * - `.reveal-from-left` / `.reveal-from-right` / `.reveal-pop`: the versus card's teams slide in from the sides
+ *   and the "VS" settles from slightly larger.
+ *
+ * Once the entrance finishes, <Reveal> sets `data-reveal-done`, which drops these transitions so components
+ * get their own (such as hover effects) back.
  */
-@media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .reveal {
-      animation: reveal linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 70%;
-    }
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  [data-reveal]:not([data-reveal-done]),
+  [data-reveal]:not([data-reveal-done]) :is(.reveal-item, .reveal-from-left, .reveal-from-right, .reveal-pop) {
+    transition:
+      opacity 400ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  [data-reveal="rise"]:not([data-revealed]),
+  [data-reveal="rise"]:not([data-revealed]) .reveal-item {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  [data-reveal="rise"]:not([data-reveal-done]) .reveal-item {
+    transition-delay: calc(120ms + var(--i, 0) * 60ms);
+  }
+
+  [data-reveal="fade"]:not([data-revealed]) .reveal-item {
+    opacity: 0;
+  }
+  [data-reveal="fade"]:not([data-reveal-done]) .reveal-item {
+    transition-duration: 300ms;
+    transition-delay: calc(var(--i, 0) * 25ms);
+  }
+
+  [data-reveal]:not([data-revealed]) :is(.reveal-from-left, .reveal-from-right, .reveal-pop) {
+    opacity: 0;
+  }
+  [data-reveal]:not([data-revealed]) .reveal-from-left {
+    transform: translateX(-32px);
+  }
+  [data-reveal]:not([data-revealed]) .reveal-from-right {
+    transform: translateX(32px);
+  }
+  [data-reveal]:not([data-revealed]) .reveal-pop {
+    transform: scale(1.25);
+  }
+  [data-reveal]:not([data-reveal-done]) :is(.reveal-from-left, .reveal-from-right) {
+    transition-delay: 150ms;
+  }
+  [data-reveal]:not([data-reveal-done]) .reveal-pop {
+    transition-delay: 350ms;
   }
 }
 
-@keyframes reveal {
+/* Short fade-in on page load, for the hero. */
+@media (prefers-reduced-motion: no-preference) {
+  .intro {
+    animation: intro 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes intro {
   from {
     opacity: 0;
-    transform: translateY(48px) skewY(2deg);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;

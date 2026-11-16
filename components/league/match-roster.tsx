@@ -22,8 +22,8 @@ export function MatchRosterProvider({ rosters, children }: { rosters: TeamRoster
     dialogRef.current?.showModal();
   };
 
-  // The dialog is portalled to <body> so ancestors with transforms, scroll-driven animations or
-  // horizontal scrolling (the `.reveal` sections, the bracket and carousel tracks) can't shift it.
+  // The dialog is portalled to <body> so ancestors with transforms or horizontal scrolling
+  // (the bracket and carousel tracks) can't shift it.
   const isClient = useSyncExternalStore(
     subscribeNever,
     () => true,

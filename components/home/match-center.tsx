@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { CaptainName } from "@/components/league/captain-name";
 import { MatchRosterButton } from "@/components/league/match-roster";
 import { SeedNumber } from "@/components/league/seed-number";
@@ -54,13 +54,18 @@ export function Eyebrow({ children, className = "mb-3" }: { children: ReactNode;
   );
 }
 
-/** One side of the versus card: monogram, team name and seed. Spans only, since it sits inside a button. */
-function VersusSide({ slot }: { slot: ResolvedSlot }) {
-  if (!slot.team) return <span className="block text-center text-auh-cream-dim">{slot.placeholder}</span>;
+/**
+ * One side of the versus card: monogram, team name and seed. Spans only, since it sits inside a button.
+ * @param className - Entrance class, so each side slides in from its own edge.
+ */
+function VersusSide({ slot, className }: { slot: ResolvedSlot; className?: string }) {
+  if (!slot.team) {
+    return <span className={cn("block text-center text-auh-cream-dim", className)}>{slot.placeholder}</span>;
+  }
   return (
-    <span className="flex min-w-0 flex-col items-center gap-3 text-center">
-      <TeamMonogram team={slot.team} className="size-16 text-[44px] sm:size-24 sm:text-[68px]" />
-      <span className="max-w-full font-display text-[clamp(34px,4.4vw,56px)] leading-[0.9] font-semibold text-auh-cream">
+    <span className={cn("flex min-w-0 flex-col items-center gap-2 text-center sm:gap-3", className)}>
+      <TeamMonogram team={slot.team} className="size-12 text-[34px] sm:size-24 sm:text-[68px]" />
+      <span className="max-w-full font-display text-[clamp(21px,4.4vw,56px)] leading-[0.9] font-semibold break-words text-auh-cream">
         {slot.team.name}
       </span>
       <CaptainName name={slot.team.captain} className="-mt-1 max-w-full text-sm" />
@@ -90,22 +95,22 @@ export function VersusCard({ featured }: { featured: FeaturedMatch }) {
       {/* The teams area opens the players dialog. */}
       <MatchRosterButton
         match={match}
-        className="block w-full px-5 py-8 transition-colors hover:bg-auh-ink/40 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-auh-orange sm:px-7 sm:py-10"
+        className="block w-full px-4 py-6 transition-colors hover:bg-auh-ink/40 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-auh-orange sm:px-7 sm:py-10"
         data-testid="featured-match-players"
       >
-        <span className="grid grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto_1fr]">
-          <VersusSide slot={match.slotA} />
-          <span
-            aria-hidden="true"
-            className="block -skew-x-6 text-center font-display text-[clamp(64px,10vw,132px)] leading-[0.8] font-bold text-auh-yellow"
-          >
-            VS
+        {/* Teams stay side by side on every screen size, which keeps the card short on mobile. */}
+        <span className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-6">
+          <VersusSide slot={match.slotA} className="reveal-from-left" />
+          <span aria-hidden="true" className="reveal-pop block">
+            <span className="block -skew-x-6 text-center font-display text-[clamp(44px,10vw,132px)] leading-[0.8] font-bold text-auh-yellow">
+              VS
+            </span>
           </span>
-          <VersusSide slot={match.slotB} />
+          <VersusSide slot={match.slotB} className="reveal-from-right" />
         </span>
         <span
           aria-hidden="true"
-          className="mt-6 block text-center text-sm font-semibold text-auh-yellow group-hover:underline"
+          className="mt-5 block text-center text-sm font-semibold text-auh-yellow group-hover:underline sm:mt-6"
         >
           See the players
         </span>
@@ -156,8 +161,13 @@ export function LaterMatches({ matches }: { matches: FeaturedMatch[] }) {
   return (
     <div className="mt-10" data-testid="later-matches">
       <Carousel label="Other upcoming playoff matches" header={<Eyebrow className="">Also coming up</Eyebrow>}>
-        {matches.map(({ bracketName, match }) => (
-          <li key={match.id} className="w-[250px] shrink-0 snap-start" data-testid={`later-match-${match.id}`}>
+        {matches.map(({ bracketName, match }, index) => (
+          <li
+            key={match.id}
+            style={{ "--i": 8 + index } as CSSProperties}
+            className="reveal-item w-[250px] shrink-0 snap-start"
+            data-testid={`later-match-${match.id}`}
+          >
             <MatchRosterButton
               match={match}
               className="notch focus-notch block h-full w-full bg-auh-ink-soft text-sm text-auh-cream transition-[filter] hover:brightness-125"
@@ -197,36 +207,43 @@ const PODIUM_PLACES = [
   { block: "bg-auh-orange text-auh-ink", height: "sm:min-h-[190px]", order: "sm:order-3" },
 ] as const;
 
-/** The top three teams of the group stage on a podium, with points and record. */
+/**
+ * The top three teams of the group stage on a podium, with points and record. On mobile each place is a
+ * compact row; from `sm` up they stand as podium blocks of different heights.
+ */
 export function Podium({ rows }: { rows: StandingRow[] }) {
   const top = rows.slice(0, 3);
   if (top.length === 0) return null;
 
   return (
-    <ol className="grid gap-3 sm:grid-cols-3 sm:items-end" aria-label="Top three teams" data-testid="podium">
+    <ol className="grid gap-2.5 sm:grid-cols-3 sm:items-end sm:gap-3" aria-label="Top three teams" data-testid="podium">
       {top.map((row, index) => {
         const place = PODIUM_PLACES[index];
         return (
           <li
             key={row.team.id}
+            // Third place appears first and the winner last.
+            style={{ "--i": (2 - index) * 5 } as CSSProperties}
             className={cn(
-              "notch flex flex-col justify-between gap-6 p-5 transition-transform duration-200 ease-out hover:-translate-y-1.5 sm:p-6",
+              "reveal-item notch flex items-center gap-4 p-4 transition-transform duration-200 ease-out hover:-translate-y-1.5 sm:flex-col sm:items-stretch sm:justify-between sm:gap-6 sm:p-6",
               place.block,
               place.height,
               place.order,
             )}
             data-testid="podium-place"
           >
-            <div className="flex items-start justify-between gap-3">
-              <span className="font-display text-[clamp(64px,8vw,104px)] leading-[0.75] font-bold">
+            <div className="flex shrink-0 items-start justify-between gap-3">
+              <span className="font-display text-[48px] leading-[0.75] font-bold sm:text-[clamp(64px,8vw,104px)]">
                 <span className="sr-only">Rank </span>
                 {row.rank}
               </span>
-              <TeamMonogram team={row.team} tone="ink" className="size-12 text-[34px]" />
+              <span className="hidden sm:block">
+                <TeamMonogram team={row.team} tone="ink" className="size-12 text-[34px]" />
+              </span>
             </div>
-            <div>
-              <p className="font-display text-[clamp(30px,3vw,40px)] leading-[0.9] font-semibold">{row.team.name}</p>
-              <p className="mt-2 flex flex-wrap items-baseline gap-x-3 text-sm font-semibold">
+            <div className="min-w-0">
+              <p className="font-display text-[clamp(28px,3vw,40px)] leading-[0.9] font-semibold">{row.team.name}</p>
+              <p className="mt-1 flex sm:mt-2 flex-wrap items-baseline gap-x-3 text-sm font-semibold">
                 <span>
                   <span className="font-display text-2xl leading-none tabular-nums">{row.points}</span> pts
                   {row.deduction ? "*" : ""}
@@ -246,7 +263,10 @@ export function Podium({ rows }: { rows: StandingRow[] }) {
 /** Shown once the grand final has a winner. */
 export function ChampionCard({ team, seasonLabel }: { team: Team; seasonLabel: string }) {
   return (
-    <div className="notch flex flex-col items-center gap-5 bg-auh-yellow px-6 py-10 text-center text-auh-ink" data-testid="champion">
+    <div
+      className="reveal-item notch flex flex-col items-center gap-5 bg-auh-yellow px-6 py-8 text-center text-auh-ink sm:py-10"
+      data-testid="champion"
+    >
       <TeamMonogram team={team} tone="ink" className="size-24 text-[68px]" />
       <div>
         <p className="text-xs font-semibold tracking-[0.18em] uppercase">{seasonLabel} champions</p>
